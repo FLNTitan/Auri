@@ -1,70 +1,56 @@
-
 import streamlit as st
+from ideation.generator import generate_ideas
 
-# Set page configuration
-st.set_page_config(
-    page_title="Auri – Your AI Content Copilot",
-    page_icon="🧠",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="Auri – Your AI Copilot", layout="centered")
 
-# Inject global styles
+# Marker for styling
+st.write('<span id="main_content_marker"></span>', unsafe_allow_html=True)
+
+# Inject CSS
 st.markdown("""
-    <style>
-        html, body, [class*="css"] {
-            background-color: #F4F7FA !important;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        h1 {
-            color: #6C63FF;
-            font-size: 2.6rem;
-        }
-        h3 {
-            color: #1F2937;
-        }
-        .stTextInput input {
-            background-color: #ffffff !important;
-            color: #1F2937 !important;
-            border-radius: 6px;
-            padding: 0.5rem;
-        }
-        .stButton button {
-            background-color: #6C63FF !important;
-            color: white !important;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 0.5rem;
-        }
-        .stButton button:hover {
-            background-color: #574fd6 !important;
-        }
-    </style>
+<style>
+html, body, [class*="css"] {
+  background-color: #F4F7FA !important;
+  font-family: 'Segoe UI', sans-serif;
+}
+div[data-testid="stVerticalBlock"]:has(#main_content_marker) {
+  margin-top: 3rem;
+  padding: 2rem;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+}
+h1 { color: #6C63FF; font-size: 2.6rem; }
+h3 { color: #1F2937; }
+input {
+  background-color: #FFFFFF !important;
+  color: #1F2937 !important;
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+button {
+  background-color: #6C63FF !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.5rem 1.5rem !important;
+  border-radius: 0.5rem;
+}
+button:hover { background-color: #574FD6 !important; }
+</style>
 """, unsafe_allow_html=True)
 
-# UI Content
+# UI content
 st.markdown("## 👋 Hey there, I’m Auri")
 st.markdown("### What do you want to achieve today?")
 
 col1, col2 = st.columns(2)
-with col1:
-    if st.button("🎯 Give me new content ideas"):
-        st.session_state['prompt'] = "Generate 5 content ideas for my niche"
-with col2:
-    custom_prompt = st.text_input("Or type your own request", "")
+if col1.button("🎯 Give me new content ideas"):
+    st.session_state['prompt'] = "Generate 5 content ideas"
+custom = col2.text_input("Or type your own request")
 
-# Display result
-if "prompt" in st.session_state or custom_prompt:
-    user_prompt = st.session_state.get('prompt', custom_prompt)
-    st.markdown(f"💡 **Auri’s thinking about:** _{user_prompt}_")
-
-    # Simulated idea output
-    st.markdown("""
-    <ul>
-        <li>🎬 A simple 15s reel showing 'before vs after' transformation</li>
-        <li>📈 A hook: 'Most people ignore this tip…'</li>
-        <li>🤯 A myth-busting clip: 'You thought this was healthy?'</li>
-        <li>🔁 A stitch: 'Respond to this trending sound with your twist'</li>
-        <li>🧪 Try-on challenge or 3-part storytelling hook</li>
-    </ul>
-    """, unsafe_allow_html=True)
+if "prompt" in st.session_state or custom:
+    prompt = st.session_state.get('prompt', custom)
+    st.markdown(f"💡 **Auri's thinking about:** _{prompt}_")
+    ideas = generate_ideas(prompt)
+    for idea in ideas:
+        st.markdown(f"- {idea}")

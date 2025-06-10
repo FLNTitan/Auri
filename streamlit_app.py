@@ -1,13 +1,5 @@
 import streamlit as st
 
-# Set page config
-st.set_page_config(
-    page_title="Auri – Your AI Content Copilot",
-    page_icon="🧠",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
 # Custom CSS
 st.markdown("""
     <style>
@@ -43,6 +35,14 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
+
+# Set page config
+st.set_page_config(
+    page_title="Auri – Your AI Content Copilot",
+    page_icon="🧠",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
 # Main UI
 st.markdown("<div class='main'>", unsafe_allow_html=True)

@@ -1,7 +1,8 @@
 from openai import OpenAI
 from ideation.prompts import content_idea_prompt
+import streamlit as st
 
-client = OpenAI()
+client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 def generate_ideas(niche: str) -> list:
     prompt = content_idea_prompt(niche)

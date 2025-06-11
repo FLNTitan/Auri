@@ -63,7 +63,7 @@ st.markdown("""
 # ----------------------------
 with st.sidebar:
     # Centered logo using st.image (local file)
-    st.image("auri_logo_circular.png", width=120)
+    st.image("auri_logo_circular.png", width=100)
 
     # Sidebar styling
     st.markdown("""

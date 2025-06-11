@@ -79,7 +79,7 @@ with st.sidebar:
     st.markdown("## 🧭 Navigation")
     section = st.radio(
         "Jump to",
-        ["🧠 Content Ideas", "🎨 Editing Studio", "📆 Scheduling", "📊 Analytics"],
+        ["🧠 Content Ideas", "🎨 Editing Studio", "📆 Posting & Scheduling", "📊 Analytics"],
     )
 
 # ----------------------------
@@ -126,8 +126,8 @@ elif section == "🎨 Editing Studio":
 # ----------------------------
 # Schedule Section Placeholder
 # ----------------------------
-elif section == "📆 Scheduling":
-    st.markdown("## 📆 Scheduling")
+elif section == "📆 Posting & Scheduling":
+    st.markdown("## 📆 Posting & Scheduling")
     st.info("Here you’ll be able to plan and schedule your social media content visually.")
 
 # ----------------------------

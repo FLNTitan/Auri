@@ -12,32 +12,34 @@ st.set_page_config(
 )
 
 # ----------------------------
-# Professional Custom Styling
+# Global Custom Styling
 # ----------------------------
 st.markdown("""
 <style>
-    /* Main layout container */
+    /* Layout padding */
     .block-container {
         padding: 2rem 3rem;
         background-color: #F4F7FA;
     }
 
-    /* Sidebar branding */
+    /* Sidebar base */
     [data-testid="stSidebar"] {
         background-color: #1F2235;
     }
 
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] .css-1v3fvcr {
-        color: #FFFFFF;
+    /* Sidebar radio labels */
+    section[data-testid="stSidebar"] .stRadio label {
+        color: #FFFFFF !important;
+        font-size: 1rem;
     }
 
-    /* Section headers */
-    h1, h2, h3 {
-        font-family: 'Segoe UI', sans-serif;
+    /* Selected radio styling */
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-selected="true"] {
+        color: #6C63FF !important;
+        font-weight: 600;
     }
 
-    /* Custom card design */
+    /* Card styling */
     .idea-card {
         background-color: #FFFFFF;
         padding: 1.25rem 1.5rem;
@@ -51,48 +53,25 @@ st.markdown("""
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         transform: translateY(-2px);
     }
-
-    /* Floating assistant chat (optional future) */
-    .assistant-chat {
-        position: fixed;
-        bottom: 20px;
-        right: 30px;
-        width: 320px;
-        max-height: 400px;
-        overflow-y: auto;
-        background-color: #F4F7FA;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-        padding: 1rem;
-        z-index: 9999;
-    }
-
-    .assistant-toggle {
-        position: fixed;
-        bottom: 20px;
-        right: 30px;
-        background-color: #6C63FF;
-        color: white;
-        padding: 0.75rem 1rem;
-        border: none;
-        border-radius: 999px;
-        font-weight: bold;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-        cursor: pointer;
-        z-index: 10000;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Sidebar Navigation
+# Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
+    st.markdown("""
+        <div style='text-align: center; margin-top: 1rem;'>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Placeholder_view_vector.svg/320px-Placeholder_view_vector.svg.png" width="100">
+            <h3 style="color: #FFFFFF; margin-bottom: 2rem;">Auri</h3>
+        </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("## 🧭 Navigation")
     section = st.radio("Jump to", ["🧠 Ideation", "🎨 Studio", "📆 Schedule", "📊 Analytics"])
 
 # ----------------------------
-# Top Hero Section
+# Hero Section
 # ----------------------------
 st.markdown("""
     <div style='text-align: center; margin-top: 2rem; margin-bottom: 1rem;'>
@@ -117,7 +96,6 @@ if section == "🧠 Ideation":
     with col2:
         custom = st.text_input("Or describe what you need", placeholder="e.g. Write captions for a fitness post")
 
-    # Results
     if "prompt" in st.session_state or custom:
         prompt = st.session_state.get("prompt", custom)
         st.markdown(f"#### 💡 Auri is thinking about: _{prompt}_")

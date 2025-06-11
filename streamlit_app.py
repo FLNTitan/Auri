@@ -16,32 +16,41 @@ st.set_page_config(
 # ----------------------------
 st.markdown("""
 <style>
-    /* Layout spacing */
     .block-container {
         padding: 2rem 3rem;
         background-color: #F4F7FA;
     }
 
-    /* Sidebar background */
     [data-testid="stSidebar"] {
         background-color: #1F2235;
     }
 
-    /* Sidebar text fixes */
     section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
     section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] .markdown-text-container,
     section[data-testid="stSidebar"] label {
         color: #FFFFFF !important;
     }
 
-    /* Selected radio option styling */
-    section[data-testid="stSidebar"] label[data-selected="true"] {
-        color: #6C63FF !important;
-        font-weight: 600;
+    section[data-testid="stSidebar"] .stRadio label {
+        color: #FFFFFF !important;
+        font-size: 1.4rem !important;  /* larger emoji and label */
+        line-height: 1.8rem;
+        display: flex;
+        align-items: center;
     }
 
-    /* Card design */
+    section[data-testid="stSidebar"] label[data-selected="true"] {
+        color: #6C63FF !important;
+        font-weight: 700;
+    }
+
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
+        gap: 0.75rem;
+    }
+
     .idea-card {
         background-color: #FFFFFF;
         padding: 1.25rem 1.5rem;
@@ -62,48 +71,16 @@ st.markdown("""
 # Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
-    # Centered logo using st.image (local file)
-    st.image("auri_logo_circular.png", width=100)
-
-    # Sidebar styling
-    st.markdown("""
-        <style>
-            section[data-testid="stSidebar"] {
-                color: #FFFFFF;
-            }
-
-            section[data-testid="stSidebar"] h1,
-            section[data-testid="stSidebar"] h2,
-            section[data-testid="stSidebar"] h3,
-            section[data-testid="stSidebar"] p,
-            section[data-testid="stSidebar"] .markdown-text-container {
-                color: #FFFFFF !important;
-            }
-
-            section[data-testid="stSidebar"] .stRadio label {
-                color: #FFFFFF !important;
-                font-size: 1.4rem !important;
-                line-height: 1.6rem;
-            }
-
-            section[data-testid="stSidebar"] label[data-selected="true"] {
-                color: #6C63FF !important;
-                font-weight: 700;
-            }
-
-            section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
-                gap: 0.5rem;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    # Centered logo using columns
+    logo_col = st.columns([1, 2, 1])[1]
+    with logo_col:
+        st.image("auri_logo_circular.png", width=120)
 
     st.markdown("## 🧭 Navigation")
     section = st.radio(
         "Jump to",
         ["🧠 Content Ideas", "🎨 Editing Studio", "📆 Scheduling", "📊 Analytics"],
     )
-
-
 
 # ----------------------------
 # Hero Section

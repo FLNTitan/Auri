@@ -62,25 +62,16 @@ st.markdown("""
 # Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
-    # Display centered logo from local file
-    st.markdown(
-        """
-        <div style="display: flex; justify-content: center; margin: 1rem 0;">
-            <img src="auri_logo_circular.png" width="120" style="border-radius: 12px;" />
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Centered logo using st.image (local file)
+    st.image("auri_logo_circular.png", width=120)
 
-    # Sidebar styling fixes
+    # Sidebar styling
     st.markdown("""
         <style>
             section[data-testid="stSidebar"] {
                 color: #FFFFFF;
-                font-size: 1rem;
             }
 
-            /* Ensure sidebar markdown and headers are readable */
             section[data-testid="stSidebar"] h1,
             section[data-testid="stSidebar"] h2,
             section[data-testid="stSidebar"] h3,
@@ -89,23 +80,19 @@ with st.sidebar:
                 color: #FFFFFF !important;
             }
 
-            /* Radio labels */
             section[data-testid="stSidebar"] .stRadio label {
                 color: #FFFFFF !important;
-                font-size: 1.05rem;
+                font-size: 1.4rem !important;
+                line-height: 1.6rem;
             }
 
-            /* Selected option color */
-            section[data-testid="stSidebar"] .stRadio label[data-selected="true"] {
+            section[data-testid="stSidebar"] label[data-selected="true"] {
                 color: #6C63FF !important;
-                font-weight: 600;
+                font-weight: 700;
             }
 
-            /* Larger emoji icons */
-            section[data-testid="stSidebar"] .stRadio svg {
-                width: 1.3em !important;
-                height: 1.3em !important;
-                margin-right: 0.5em;
+            section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
+                gap: 0.5rem;
             }
         </style>
     """, unsafe_allow_html=True)

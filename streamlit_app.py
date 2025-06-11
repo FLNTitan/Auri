@@ -62,14 +62,47 @@ st.markdown("""
 # Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
-    st.image("auri_logo_circular.png", width=100)
+    # Centered Auri Logo
     st.markdown(
-        "<h3 style='color: #FFFFFF; text-align: center; margin-top: 0.5rem;'>Auri</h3>",
+        f"""
+        <div style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 1.5rem;">
+            <img src="logo.png" width="120" style="border-radius: 50%;">
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
+    # Sidebar CSS fix: text color + icon scale
+    st.markdown("""
+        <style>
+            section[data-testid="stSidebar"] {
+                color: #FFFFFF;
+            }
+
+            section[data-testid="stSidebar"] .stRadio label {
+                font-size: 1.1rem !important;
+                color: #FFFFFF !important;
+            }
+
+            section[data-testid="stSidebar"] .stRadio label[data-selected="true"] {
+                color: #6C63FF !important;
+                font-weight: 600;
+            }
+
+            /* Increase emoji icon size */
+            section[data-testid="stSidebar"] .stRadio svg {
+                width: 1.25em !important;
+                height: 1.25em !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("## 🧭 Navigation")
-    section = st.radio("Jump to", ["🧠 Ideation", "🎨 Studio", "📆 Schedule", "📊 Analytics"])
+    section = st.radio(
+        "Jump to",
+        ["🧠 Ideation", "🎨 Studio", "📆 Schedule", "📊 Analytics"],
+    )
+
 
 # ----------------------------
 # Hero Section

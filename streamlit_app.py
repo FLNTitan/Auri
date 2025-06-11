@@ -131,7 +131,7 @@ st.markdown("""
 # ----------------------------
 # Ideation Section
 # ----------------------------
-if section == "🧠 Ideation":
+if section == "🧠 Content Ideas":
     st.markdown("## 🧠 Content Ideation")
     st.markdown("Let Auri help you spark your next idea. Select a preset or type your own prompt.")
 
@@ -155,14 +155,14 @@ if section == "🧠 Ideation":
 # ----------------------------
 # Studio Section Placeholder
 # ----------------------------
-elif section == "🎨 Studio":
-    st.markdown("## 🎨 Studio")
+elif section == "🎨 Editing Studio":
+    st.markdown("## 🎨 Editing Studio")
     st.info("Auri's content editor is coming soon. This will be your visual workspace for posts and videos.")
 
 # ----------------------------
 # Schedule Section Placeholder
 # ----------------------------
-elif section == "📆 Schedule":
+elif section == "📆 Scheduling":
     st.markdown("## 📆 Scheduling")
     st.info("Here you’ll be able to plan and schedule your social media content visually.")
 

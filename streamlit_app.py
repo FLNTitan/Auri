@@ -16,30 +16,32 @@ st.set_page_config(
 # ----------------------------
 st.markdown("""
 <style>
-    /* Layout padding */
+    /* Layout spacing */
     .block-container {
         padding: 2rem 3rem;
         background-color: #F4F7FA;
     }
 
-    /* Sidebar base */
+    /* Sidebar background */
     [data-testid="stSidebar"] {
         background-color: #1F2235;
     }
 
-    /* Sidebar radio labels */
-    section[data-testid="stSidebar"] .stRadio label {
+    /* Sidebar text fixes */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] .markdown-text-container,
+    section[data-testid="stSidebar"] label {
         color: #FFFFFF !important;
-        font-size: 1rem;
     }
 
-    /* Selected radio styling */
-    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-selected="true"] {
+    /* Selected radio option styling */
+    section[data-testid="stSidebar"] label[data-selected="true"] {
         color: #6C63FF !important;
         font-weight: 600;
     }
 
-    /* Card styling */
+    /* Card design */
     .idea-card {
         background-color: #FFFFFF;
         padding: 1.25rem 1.5rem;
@@ -60,12 +62,11 @@ st.markdown("""
 # Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
-    st.markdown("""
-        <div style='text-align: center; margin-top: 1rem;'>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Placeholder_view_vector.svg/320px-Placeholder_view_vector.svg.png" width="100">
-            <h3 style="color: #FFFFFF; margin-bottom: 2rem;">Auri</h3>
-        </div>
-    """, unsafe_allow_html=True)
+    st.image("/mnt/data/641a81f7-aa4a-4e08-a359-aa4fc7d793aa.png", width=100)
+    st.markdown(
+        "<h3 style='color: #FFFFFF; text-align: center; margin-top: 0.5rem;'>Auri</h3>",
+        unsafe_allow_html=True
+    )
 
     st.markdown("## 🧭 Navigation")
     section = st.radio("Jump to", ["🧠 Ideation", "🎨 Studio", "📆 Schedule", "📊 Analytics"])

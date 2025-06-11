@@ -62,7 +62,7 @@ st.markdown("""
 # Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
-    st.image("/mnt/data/641a81f7-aa4a-4e08-a359-aa4fc7d793aa.png", width=100)
+    st.image("auri_logo_circular.png", width=100)
     st.markdown(
         "<h3 style='color: #FFFFFF; text-align: center; margin-top: 0.5rem;'>Auri</h3>",
         unsafe_allow_html=True

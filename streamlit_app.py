@@ -62,37 +62,50 @@ st.markdown("""
 # Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
-    # Centered Auri Logo
+    # Display centered logo from local file
     st.markdown(
-        f"""
-        <div style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 1.5rem;">
-            <img src="logo.png" width="120" style="border-radius: 50%;">
+        """
+        <div style="display: flex; justify-content: center; margin: 1rem 0;">
+            <img src="auri_logo_circular.png" width="120" style="border-radius: 12px;" />
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # Sidebar CSS fix: text color + icon scale
+    # Sidebar styling fixes
     st.markdown("""
         <style>
             section[data-testid="stSidebar"] {
                 color: #FFFFFF;
+                font-size: 1rem;
             }
 
-            section[data-testid="stSidebar"] .stRadio label {
-                font-size: 1.1rem !important;
+            /* Ensure sidebar markdown and headers are readable */
+            section[data-testid="stSidebar"] h1,
+            section[data-testid="stSidebar"] h2,
+            section[data-testid="stSidebar"] h3,
+            section[data-testid="stSidebar"] p,
+            section[data-testid="stSidebar"] .markdown-text-container {
                 color: #FFFFFF !important;
             }
 
+            /* Radio labels */
+            section[data-testid="stSidebar"] .stRadio label {
+                color: #FFFFFF !important;
+                font-size: 1.05rem;
+            }
+
+            /* Selected option color */
             section[data-testid="stSidebar"] .stRadio label[data-selected="true"] {
                 color: #6C63FF !important;
                 font-weight: 600;
             }
 
-            /* Increase emoji icon size */
+            /* Larger emoji icons */
             section[data-testid="stSidebar"] .stRadio svg {
-                width: 1.25em !important;
-                height: 1.25em !important;
+                width: 1.3em !important;
+                height: 1.3em !important;
+                margin-right: 0.5em;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -102,6 +115,7 @@ with st.sidebar:
         "Jump to",
         ["🧠 Ideation", "🎨 Studio", "📆 Schedule", "📊 Analytics"],
     )
+
 
 
 # ----------------------------

@@ -113,7 +113,7 @@ with st.sidebar:
     st.markdown("## 🧭 Navigation")
     section = st.radio(
         "Jump to",
-        ["🧠 Ideation", "🎨 Studio", "📆 Schedule", "📊 Analytics"],
+        ["🧠 Content Ideas", "🎨 Editing Studio", "📆 Scheduling", "📊 Analytics"],
     )
 
 

@@ -36,7 +36,7 @@ st.markdown("""
 
     section[data-testid="stSidebar"] .stRadio label {
         color: #FFFFFF !important;
-        font-size: 1.4rem !important;  /* larger emoji and label */
+        font-size: 1.4rem !important;
         line-height: 1.8rem;
         display: flex;
         align-items: center;
@@ -76,10 +76,10 @@ with st.sidebar:
     with logo_col:
         st.image("auri_logo_circular.png", width=120)
 
-    st.markdown("## 🧭 Navigation")
+    st.markdown("## 🧽 Navigation")
     section = st.radio(
         "Jump to",
-        ["🧠 Content Ideas", "🎨 Editing Studio", "📆 Posting & Scheduling", "📊 Analytics"],
+        ["🧠 Content Ideas", "🎨 Editing Studio", "🗖️ Posting & Scheduling", "📊 Analytics"]
     )
 
 # ----------------------------
@@ -97,27 +97,31 @@ st.markdown("""
 # ----------------------------
 if section == "🧠 Content Ideas":
     st.markdown("## 🧠 Content Ideation")
-    st.markdown("Let Auri help you spark your next idea. Select a preset or type your own prompt.")
+    st.markdown("Kickstart your workflow with a smart recipe or describe your goal in plain English.")
 
-    col1, col2 = st.columns([1, 2])
+    with st.expander("🌍 Quick Start Recipes"):
+        cols = st.columns(3)
+        if cols[0].button("\U0001f4c8 Viral TikTok Sprint"):
+            st.session_state["prompt"] = "Plan 3 viral TikTok posts with script, thumbnail, and schedule"
+        if cols[1].button("\U0001f3a8 Weekend Reel Builder"):
+            st.session_state["prompt"] = "Create 2 weekend Instagram Reels with catchy hooks and music"
+        if cols[2].button("\U0001f3a7 YouTube-to-Short"):
+            st.session_state["prompt"] = "Repurpose latest YouTube video into 3 Shorts with new captions"
 
-    with col1:
-        if st.button("🎯 Generate content ideas"):
-            st.session_state["prompt"] = "Generate 5 content ideas"
+    user_prompt = st.text_input("Or describe your goal...", placeholder="e.g. Turn my last 2 tweets into a carousel and reel")
 
-    with col2:
-        custom = st.text_input("Or describe what you need", placeholder="e.g. Write captions for a fitness post")
+    if "prompt" in st.session_state or user_prompt:
+        full_prompt = st.session_state.get("prompt", user_prompt)
+        st.markdown(f"#### 💡 Auri is preparing your flow: _{full_prompt}_")
+        ideas = generate_ideas(full_prompt)
 
-    if "prompt" in st.session_state or custom:
-        prompt = st.session_state.get("prompt", custom)
-        st.markdown(f"#### 💡 Auri is thinking about: _{prompt}_")
-        ideas = generate_ideas(prompt)
-
-        for idea in ideas:
-            if idea.strip():  # show bullet only if not empty
-                st.markdown(f"<div class='idea-card'>🟣 {idea}</div>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("### 🔄 Workflow Preview")
+        for idx, idea in enumerate(ideas, 1):
+            if idea.strip():
+                st.markdown(f"**Step {idx}:** {idea}")
             else:
-                st.markdown(" ")  # insert a spacer if needed
+                st.markdown(" ")
 
 # ----------------------------
 # Studio Section Placeholder
@@ -129,8 +133,8 @@ elif section == "🎨 Editing Studio":
 # ----------------------------
 # Schedule Section Placeholder
 # ----------------------------
-elif section == "📆 Posting & Scheduling":
-    st.markdown("## 📆 Posting & Scheduling")
+elif section == "🗖️ Posting & Scheduling":
+    st.markdown("## 🗖️ Posting & Scheduling")
     st.info("Here you’ll be able to plan and schedule your social media content visually.")
 
 # ----------------------------

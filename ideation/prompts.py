@@ -1,11 +1,13 @@
-def content_idea_prompt(niche: str) -> str:
+def content_idea_prompt(goal: str) -> str:
     return f"""
-You are a social media strategist helping a content creator in the {niche} niche.
-Suggest 5 fresh and specific content ideas that are short-form friendly (TikTok, Reels, Shorts).
-Make sure the ideas:
-- Hook attention fast
-- Are relatable or trending
-- Require low production effort
+You are a social media strategist AI assistant. A creator gave you this request: "{goal}"
 
-Output in a numbered list.
+Break it down into 3–6 clear steps in a content workflow. These steps may include:
+- Generating ideas
+- Writing scripts
+- Creating thumbnails
+- Editing video
+- Scheduling posts
+
+Output in a numbered list of actions, with each step short and clear.
 """

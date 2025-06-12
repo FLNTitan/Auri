@@ -53,4 +53,7 @@ if "prompt" in st.session_state or custom:
     st.markdown(f"💡 **Auri's thinking about:** _{prompt}_")
     ideas = generate_ideas(prompt)
     for idea in ideas:
-        st.markdown(f"- {idea}")
+        if idea.strip():  # show bullet only if not empty
+            st.markdown(f"- {idea}")
+        else:
+            st.markdown(" ")  # insert a spacer if needed

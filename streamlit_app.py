@@ -128,13 +128,14 @@ if section == "🧠 Content Ideas":
             ideas = generate_ideas(st.session_state["prompt"])
             st.markdown("### 🌟 Content Ideas")
             for idx, idea in enumerate(ideas, 1):
-                st.markdown(f"<div class='idea-card'>🔹 <strong>Idea {idx}:</strong> {idea}</div>", unsafe_allow_html=True)
+                idea_clean = idea.lstrip("0123456789.- ").strip()
+                st.markdown(f"<div class='idea-card'>🔹 <strong>Idea {idx}:</strong> {idea_clean}</div>", unsafe_allow_html=True)
             base_task = ideas[0]
         else:
             base_task = st.session_state["prompt"]
 
         # Dynamic workflow generation using OpenAI
-        openai.api_key = st.secrets["openai"]["api_key"]
+        # openai.api_key = st.secrets["openai"]["api_key"]
         workflow_prompt = f"""
 Act as an AI content operations assistant.
 Given the user goal: \"{st.session_state['prompt']}\" and task: \"{base_task}\",

@@ -10,10 +10,15 @@ def generate_ideas(user_goal: str) -> list:
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
+            {"role": "system", "content": "You're an expert content strategist. Break down user goals into actionable content steps."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.8,
+        temperature=0.7,
     )
 
     content = response.choices[0].message.content
-    return [line.strip("•-123. ").strip() for line in content.strip().split("\n") if line.strip()]
+
+    # Clean and split into workflow steps
+    lines = content.split("\n")
+    steps = [line.strip("•-123. ").strip() for line in lines if line.strip()]
+    return steps

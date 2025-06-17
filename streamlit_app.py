@@ -110,18 +110,83 @@ if section == "🧠 Content Ideas":
 
     user_prompt = st.text_input("Or describe your goal...", placeholder="e.g. Turn my last 2 tweets into a carousel and reel")
 
-    if "prompt" in st.session_state or user_prompt:
-        full_prompt = st.session_state.get("prompt", user_prompt)
-        st.markdown(f"#### 💡 Auri is preparing your flow: _{full_prompt}_")
-        ideas = generate_ideas(full_prompt)
+from openai import OpenAI
+import re
 
-        st.markdown("---")
-        st.markdown("### 🔄 Workflow Preview")
-        for idx, idea in enumerate(ideas, 1):
-            if idea.strip():
-                st.markdown(f"**Step {idx}:** {idea}")
-            else:
-                st.markdown(" ")
+client = OpenAI(api_key=st.secrets["openai"]["api_key"])
+
+if "prompt" not in st.session_state:
+    st.session_state["prompt"] = ""
+
+# Update state from input or button
+if user_prompt and user_prompt != st.session_state["prompt"]:
+    st.session_state["prompt"] = user_prompt
+if any(k in st.session_state for k in ["prompt"]):
+    full_prompt = st.session_state["prompt"]
+
+    st.markdown(f"#### 💡 Auri is preparing your flow: _{full_prompt}_")
+
+    # Build prompt for workflow step analysis
+    workflow_prompt = f"""
+You are Auri, an AI assistant that helps creators bring content to life.
+
+The user said: "{full_prompt}"
+
+Break this into 3–6 practical steps to accomplish their goal. Each step must:
+- Have a short title (like 'Generate Ideas', 'Upload Media', 'Schedule Post')
+- Have one sentence explaining what Auri will do and what the user must provide
+
+Return steps only. No intro, no summary. Use this format:
+1. Step Title – What Auri does and what the user provides
+    """
+
+    # Call OpenAI for dynamic steps
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": workflow_prompt}],
+        temperature=0.5,
+    )
+
+    step_lines = response.choices[0].message.content.strip().split("\n")
+
+    # Parse steps: "1. Step Title – Description"
+    steps = []
+    for line in step_lines:
+        match = re.match(r"^\s*(\d+)[\).\s-]+(.*?)\s+[–-]\s+(.*)", line)
+        if match:
+            title = match.group(2).strip()
+            desc = match.group(3).strip()
+            steps.append({"title": title, "description": desc})
+
+    # Render the workflow
+    st.markdown("---")
+    st.markdown("### ✅ Here's how we'll make it happen:")
+    for idx, step in enumerate(steps, 1):
+        st.markdown(f"**Step {idx}: {step['title']}**")
+        st.caption(step["description"])
+        if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+            with st.spinner("Running..."):
+                title = step["title"].lower()
+                if "idea" in title:
+                    from ideation.generator import generate_ideas
+                    ideas = generate_ideas(full_prompt)
+                    for i, idea in enumerate(ideas, 1):
+                        idea_clean = idea.lstrip("0123456789.-• ").strip()
+                        st.markdown(f"💡 **Idea {i}:** {idea_clean}")
+                elif "script" in title:
+                    from modules.script import generate_script
+                    st.success(generate_script(full_prompt))
+                elif "thumbnail" in title or "image" in title:
+                    from modules.thumbnail import generate_thumbnail
+                    st.image(generate_thumbnail(full_prompt), caption="Generated Thumbnail")
+                elif "schedule" in title or "post" in title:
+                    from modules.scheduler import schedule_post
+                    st.success(schedule_post(full_prompt))
+                elif "upload" in title or "media" in title or "record" in title:
+                    st.warning("📤 Please upload the required video/audio files to proceed.")
+                else:
+                    st.info("⚙️ No handler yet for this step.")
+
 
 # ----------------------------
 # Studio Section Placeholder

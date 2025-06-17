@@ -128,12 +128,13 @@ if section == "🧠 Content Ideas":
         if any(keyword in st.session_state["prompt"].lower() for keyword in ["ideas", "suggest", "give me", "what are"]):
             ideas = generate_ideas(st.session_state["prompt"])
             st.markdown("### 🌟 Content Ideas")
+            valid_ideas = []
             for idx, idea in enumerate(ideas, 1):
-                idea_clean = idea.lstrip("0123456789.- ").strip()
-                st.markdown(f"<div class='idea-card'>🔹 <strong>Idea {idx}:</strong> {idea_clean}</div>", unsafe_allow_html=True)
-            base_task = ideas[0]
-        else:
-            base_task = st.session_state["prompt"]
+                idea_clean = idea.lstrip("0123456789.-• ").strip()
+                valid_ideas.append(idea_clean)
+                st.markdown(f"<div class='idea-card'>🔹 <strong>Idea {len(valid_ideas)}:</strong> {idea_clean}</div>", unsafe_allow_html=True)
+
+            base_task = valid_ideas[0] if valid_ideas else st.session_state["prompt"]
 
         workflow_prompt = f"""
 Act as an AI content operations assistant.

@@ -74,7 +74,6 @@ st.markdown("""
 # Sidebar Navigation & Branding
 # ----------------------------
 with st.sidebar:
-    # Centered logo using columns
     logo_col = st.columns([1, 2, 1])[1]
     with logo_col:
         st.image("auri_logo_circular.png", width=120)
@@ -84,6 +83,22 @@ with st.sidebar:
         "Jump to",
         ["🧠 Content Ideas", "🎨 Editing Studio", "🗖️ Posting & Scheduling", "📊 Analytics"]
     )
+
+# ----------------------------
+# Helper Function
+# ----------------------------
+def parse_steps(raw_response: str) -> list:
+    lines = raw_response.strip().split("\n")
+    steps = []
+    for line in lines:
+        if line.strip() == "":
+            continue
+        if any(line.lstrip().startswith(f"{i}.") for i in range(1, 100)):
+            steps.append({"title": line.strip().split('.', 1)[-1].strip(), "description": ""})
+        else:
+            if steps:
+                steps[-1]["description"] += " " + line.strip()
+    return steps
 
 # ----------------------------
 # Hero Section
@@ -116,25 +131,27 @@ if section == "🧠 Content Ideas":
     if "prompt" in st.session_state or user_prompt:
         full_prompt = st.session_state.get("prompt", user_prompt)
         st.markdown(f"#### 💡 Auri is preparing your flow: _{full_prompt}_")
-        ideas = generate_ideas(full_prompt)
+        raw = generate_ideas(full_prompt)
+        steps = parse_steps("\n".join(raw))
+        st.session_state["flow"] = steps
 
         st.markdown("---")
         st.markdown("### 🔄 Workflow Preview")
-        for idx, idea in enumerate(ideas, 1):
-            if idea.strip():
-                st.markdown(f"**Step {idx}:** {idea}")
-                if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
-                    with st.spinner("Running..."):
-                        if "script" in idea.lower():
-                            st.success(generate_script(idea))
-                        elif "thumbnail" in idea.lower():
-                            st.image(generate_thumbnail(idea), caption="Generated Thumbnail")
-                        elif "schedule" in idea.lower():
-                            st.success(schedule_post(idea))
-                        else:
-                            st.info("This step does not have a mock handler yet.")
-            else:
-                st.markdown(" ")
+        for idx, step in enumerate(steps, 1):
+            st.markdown(f"**Step {idx}: {step['title']}**")
+            if step["description"]:
+                st.caption(step["description"])
+            if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+                with st.spinner("Running..."):
+                    title = step["title"].lower()
+                    if "script" in title:
+                        st.success(generate_script(step["description"]))
+                    elif "thumbnail" in title:
+                        st.image(generate_thumbnail(step["description"]), caption="Generated Thumbnail")
+                    elif "schedule" in title:
+                        st.success(schedule_post(step["description"]))
+                    else:
+                        st.info("This step does not have a handler yet.")
 
 # ----------------------------
 # Studio Section Placeholder

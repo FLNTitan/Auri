@@ -176,7 +176,8 @@ if any(k in st.session_state for k in ["prompt"]):
     st.markdown("### ✅ Here's how we'll make it happen:")
     for idx, step in enumerate(steps, 1):
         st.markdown(f"**Step {idx}: {step['title']}**")
-        st.caption(step["description"])
+        st.caption(f"🤖 {step['auri']}")
+        st.caption(f"📥 {step['user']}")
         if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
             with st.spinner("Running..."):
                 title = step["title"].lower()

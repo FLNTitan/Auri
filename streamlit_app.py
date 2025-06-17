@@ -136,42 +136,71 @@ if section == "🧠 Content Ideas":
 
             base_task = valid_ideas[0] if valid_ideas else st.session_state["prompt"]
 
-        workflow_prompt = f"""
-Act as an AI content operations assistant.
-Given the user goal: \"{st.session_state['prompt']}\" and task: \"{base_task}\",
-break down the production process into 3–5 steps.
-Include any dependencies (e.g. if you need the user to upload media).
-Return as a numbered list.
-"""
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": workflow_prompt}],
-            temperature=0.7,
-        )
-        steps_raw = response.choices[0].message.content.split("\n")
-        steps = [
-            {"title": step.split(". ", 1)[-1].strip(), "description": ""} for step in steps_raw if step.strip()
-        ]
+            # Step 1: Build prompt dynamically based on the user input
+            workflow_prompt = f"""
+            You are an AI content strategist.
 
-        st.markdown("---")
-        st.markdown("### 🔄 Workflow Preview")
-        for idx, step in enumerate(steps, 1):
-            st.markdown(f"**Step {idx}: {step['title']}**")
-            if step["description"]:
-                st.caption(step["description"])
-            if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
-                with st.spinner("Running..."):
-                    title = step["title"].lower()
-                    if "script" in title:
-                        st.success(generate_script(st.session_state["prompt"]))
-                    elif "thumbnail" in title:
-                        st.image(generate_thumbnail(st.session_state["prompt"]), caption="Generated Thumbnail")
-                    elif "schedule" in title:
-                        st.success(schedule_post(st.session_state["prompt"]))
-                    elif "upload" in title:
-                        st.warning("Please upload the required media to proceed.")
-                    else:
-                        st.info("This step does not have a handler yet.")
+            Your job is to read the user goal: "{st.session_state['prompt']}"
+            and return only the exact content creation steps needed to achieve it.
+
+            Include things like:
+            - Generate ideas (only if requested)
+            - Write a script
+            - Upload or record video
+            - Add captions or branding
+            - Schedule/post
+            - Review or analyze performance (only if asked)
+
+            Each step should be clear and start with a number (1., 2., etc.).
+            Keep it short and relevant. Do NOT include extra text before or after the list.
+            """
+
+            # Step 2: Ask GPT to generate the actual steps
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": workflow_prompt}],
+                temperature=0.5,
+            )
+            step_lines = response.choices[0].message.content.strip().split("\n")
+
+            # Step 3: Parse only numbered lines into structured steps
+            steps = []
+            for line in step_lines:
+                match = re.match(r"^\s*(\d+)[\).\s-]+(.*)", line)
+                if match:
+                    steps.append({
+                        "title": match.group(2).strip(),
+                        "description": "",
+                    })
+
+            # Step 4: Display the preview and attach button handlers
+            st.markdown("---")
+            st.markdown("### 🔄 Here are the steps needed to make it happen:")
+            for idx, step in enumerate(steps, 1):
+                st.markdown(f"**Step {idx}: {step['title']}**")
+                if step["description"]:
+                    st.caption(step["description"])
+
+                if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+                    with st.spinner("Running..."):
+                        title = step["title"].lower()
+
+                        if "script" in title:
+                            st.success(generate_script(st.session_state["prompt"]))
+                        elif "thumbnail" in title or "image" in title:
+                            st.image(generate_thumbnail(st.session_state["prompt"]), caption="Generated Thumbnail")
+                        elif "schedule" in title or "post" in title:
+                            st.success(schedule_post(st.session_state["prompt"]))
+                        elif "upload" in title or "record" in title:
+                            st.warning("Please upload or record the required media to proceed.")
+                        elif "idea" in title:
+                            ideas = generate_ideas(st.session_state["prompt"])
+                            for i, idea in enumerate(ideas, 1):
+                                idea_clean = idea.lstrip("0123456789.-• ").strip()
+                                st.markdown(f"💡 **Idea {i}:** {idea_clean}")
+                        else:
+                            st.info("This step does not have a handler yet.")
+
 
 # ----------------------------
 # Studio Section Placeholder

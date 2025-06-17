@@ -130,7 +130,11 @@ if section == "🧠 Content Ideas":
             st.markdown("### 🌟 Content Ideas")
             valid_ideas = []
             for idx, idea in enumerate(ideas, 1):
-                idea_clean = idea.lstrip("0123456789.-• ").strip()
+                idea_clean = idea.strip().lstrip("0123456789.-• ").strip()
+                if not idea_clean or len(idea_clean.split()) < 4:
+                    continue  # skip short garbage
+                if any(skip in idea_clean.lower() for skip in ["certainly", "idea generation", "script writing", "workflow for", "steps:", "here’s", "here is", "**"]):
+                    continue  # skip fluff, headers, formatting
                 valid_ideas.append(idea_clean)
                 st.markdown(f"<div class='idea-card'>🔹 <strong>Idea {len(valid_ideas)}:</strong> {idea_clean}</div>", unsafe_allow_html=True)
 

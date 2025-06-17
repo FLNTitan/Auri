@@ -1,5 +1,8 @@
 import streamlit as st
-from ideation.generator import generate_ideas
+from modules.ideation.generator import generate_ideas
+from modules.script import generate_script
+from modules.thumbnail import generate_thumbnail
+from modules.scheduler import schedule_post
 
 # ----------------------------
 # Page Setup
@@ -120,6 +123,16 @@ if section == "🧠 Content Ideas":
         for idx, idea in enumerate(ideas, 1):
             if idea.strip():
                 st.markdown(f"**Step {idx}:** {idea}")
+                if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+                    with st.spinner("Running..."):
+                        if "script" in idea.lower():
+                            st.success(generate_script(idea))
+                        elif "thumbnail" in idea.lower():
+                            st.image(generate_thumbnail(idea), caption="Generated Thumbnail")
+                        elif "schedule" in idea.lower():
+                            st.success(schedule_post(idea))
+                        else:
+                            st.info("This step does not have a mock handler yet.")
             else:
                 st.markdown(" ")
 

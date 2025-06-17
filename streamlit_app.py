@@ -3,7 +3,9 @@ from ideation.generator import generate_ideas
 from modules.script import generate_script
 from modules.thumbnail import generate_thumbnail
 from modules.scheduler import schedule_post
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 # ----------------------------
 # Page Setup
@@ -123,7 +125,6 @@ if section == "🧠 Content Ideas":
     if st.session_state["prompt"]:
         st.markdown(f"#### 💡 Auri is preparing your workflow for: _{st.session_state['prompt']}_")
 
-        # Determine if user prompt is asking for ideas
         if any(keyword in st.session_state["prompt"].lower() for keyword in ["ideas", "suggest", "give me", "what are"]):
             ideas = generate_ideas(st.session_state["prompt"])
             st.markdown("### 🌟 Content Ideas")
@@ -134,8 +135,6 @@ if section == "🧠 Content Ideas":
         else:
             base_task = st.session_state["prompt"]
 
-        # Dynamic workflow generation using OpenAI
-        # openai.api_key = st.secrets["openai"]["api_key"]
         workflow_prompt = f"""
 Act as an AI content operations assistant.
 Given the user goal: \"{st.session_state['prompt']}\" and task: \"{base_task}\",
@@ -143,7 +142,7 @@ break down the production process into 3–5 steps.
 Include any dependencies (e.g. if you need the user to upload media).
 Return as a numbered list.
 """
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": workflow_prompt}],
             temperature=0.7,

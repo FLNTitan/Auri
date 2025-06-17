@@ -128,17 +128,25 @@ if any(k in st.session_state for k in ["prompt"]):
 
     # Build prompt for workflow step analysis
     workflow_prompt = f"""
-You are Auri, an AI assistant that helps creators bring content to life.
+    You are Auri, an AI content strategist working with a human creator.
 
-The user said: "{full_prompt}"
+    The user’s goal is: "{full_prompt}"
 
-Break this into 3–6 practical steps to accomplish their goal. Each step must:
-- Have a short title (like 'Generate Ideas', 'Upload Media', 'Schedule Post')
-- Have one sentence explaining what Auri will do and what the user must provide
+    Break this goal into only the 3–6 steps required to complete it.
 
-Return steps only. No intro, no summary. Use this format:
-1. Step Title – What Auri does and what the user provides
+    Each step must be:
+    - A clear title (e.g. "Generate Ideas", "Script Writing", "Upload Media")
+    - Two subpoints:
+    1. What Auri will do (start with "I will...")
+    2. What the user needs to do (start with "To do that, I’ll need you to...")
+
+    Output format (strict):
+    1. Step Title – I will... To do that, I’ll need you to...
+    2. Step Title – I will... To do that, I’ll need you to...
+
+    No intros. No summaries.
     """
+
 
     # Call OpenAI for dynamic steps
     response = client.chat.completions.create(
@@ -149,14 +157,19 @@ Return steps only. No intro, no summary. Use this format:
 
     step_lines = response.choices[0].message.content.strip().split("\n")
 
-    # Parse steps: "1. Step Title – Description"
     steps = []
     for line in step_lines:
-        match = re.match(r"^\s*(\d+)[\).\s-]+(.*?)\s+[–-]\s+(.*)", line)
+        match = re.match(r"^\s*(\d+)[\).\s-]+(.*?)[\s–-]+(I will.*?\.)(\s+To do that, I’ll need you to.*?)$", line.strip())
         if match:
-            title = match.group(2).strip()
-            desc = match.group(3).strip()
-            steps.append({"title": title, "description": desc})
+            title = match.group(2).strip(": ")
+            auri_part = match.group(3).strip()
+            user_part = match.group(4).strip()
+            steps.append({
+                "title": title,
+                "auri": auri_part,
+                "user": user_part,
+            })
+
 
     # Render the workflow
     st.markdown("---")

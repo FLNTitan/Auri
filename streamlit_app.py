@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.ideation.generator import generate_ideas
+from ideation.generator import generate_ideas
 from modules.script import generate_script
 from modules.thumbnail import generate_thumbnail
 from modules.scheduler import schedule_post

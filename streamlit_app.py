@@ -114,15 +114,15 @@ if section == "🧠 Content Ideas":
 
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-if not st.session_state.get("prompt", "").strip():
-    st.info("👆 Start by selecting a quick recipe or describing your goal above.")
-
-# Update state from input or button
-if user_prompt and user_prompt != st.session_state["prompt"]:
+# Handle text input
+if user_prompt and user_prompt != st.session_state.get("prompt", ""):
     st.session_state["prompt"] = user_prompt
-if any(k in st.session_state for k in ["prompt"]):
-    full_prompt = st.session_state["prompt"]
 
+full_prompt = st.session_state.get("prompt", "").strip()
+
+if not full_prompt:
+    st.info("👆 Start by selecting a quick recipe or describing your goal above.")
+else:
     st.markdown(f"#### 💡 Auri is preparing your flow: _{full_prompt}_")
 
     # Build prompt for workflow step analysis
@@ -145,7 +145,6 @@ if any(k in st.session_state for k in ["prompt"]):
 
     No intros. No summaries.
     """
-
 
     # Call OpenAI for dynamic steps
     response = client.chat.completions.create(
@@ -250,27 +249,23 @@ if any(k in st.session_state for k in ["prompt"]):
                     st.markdown("---")
                     st.info(f"👉 Want to move on to **Step {idx+1}**: {steps[idx]['title']}?")
 
+        # ----------------------------
+        # Studio Section Placeholder
+        # ----------------------------
+        elif section == "🎨 Editing Studio":
+            st.markdown("## 🎨 Editing Studio")
+            st.info("Auri's content editor is coming soon. This will be your visual workspace for posts and videos.")
 
+        # ----------------------------
+        # Schedule Section Placeholder
+        # ----------------------------
+        elif section == "🗖️ Posting & Scheduling":
+            st.markdown("## 🗖️ Posting & Scheduling")
+            st.info("Here you’ll be able to plan and schedule your social media content visually.")
 
-
-
-# ----------------------------
-# Studio Section Placeholder
-# ----------------------------
-elif section == "🎨 Editing Studio":
-    st.markdown("## 🎨 Editing Studio")
-    st.info("Auri's content editor is coming soon. This will be your visual workspace for posts and videos.")
-
-# ----------------------------
-# Schedule Section Placeholder
-# ----------------------------
-elif section == "🗖️ Posting & Scheduling":
-    st.markdown("## 🗖️ Posting & Scheduling")
-    st.info("Here you’ll be able to plan and schedule your social media content visually.")
-
-# ----------------------------
-# Analytics Section Placeholder
-# ----------------------------
-elif section == "📊 Analytics":
-    st.markdown("## 📊 Performance Analytics")
-    st.info("Auri will track and summarize your content performance here in beautiful charts and reports.")
+        # ----------------------------
+        # Analytics Section Placeholder
+        # ----------------------------
+        elif section == "📊 Analytics":
+            st.markdown("## 📊 Performance Analytics")
+            st.info("Auri will track and summarize your content performance here in beautiful charts and reports.")

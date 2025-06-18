@@ -170,52 +170,88 @@ if any(k in st.session_state for k in ["prompt"]):
                 "user": user_part,
             })
 
-
     # Render the workflow
+    if "executed_steps" not in st.session_state:
+        st.session_state["executed_steps"] = {}
+
     st.markdown("---")
     st.markdown("### ✅ Here's how we'll make it happen:")
+
     for idx, step in enumerate(steps, 1):
+        step_key = f"step_{idx}"
         st.markdown(f"**Step {idx}: {step['title']}**")
         st.caption(f"🤖 {step['auri']}")
         st.caption(f"📥 {step['user']}")
 
+        # Inputs
+        input_val = None
         input_key = f"input_{idx}"
         uploaded_file = None
 
-        # Decide what kind of input is needed
-        if any(word in step["user"].lower() for word in ["upload", "file", "media", "video"]):
-            uploaded_file = st.file_uploader("📤 Upload your media file", key=f"upload_{idx}")
-        elif any(word in step["user"].lower() for word in ["share", "tell", "write", "type", "enter", "text"]):
-            st.session_state[input_key] = st.text_area("✍️ Enter your input", key=f"text_{idx}")
+        if any(w in step["user"].lower() for w in ["upload", "file", "media", "video"]):
+            uploaded_file = st.file_uploader("📤 Upload media", key=f"upload_{idx}")
+            input_ready = uploaded_file is not None
+            input_val = uploaded_file.name if uploaded_file else None
+        elif any(w in step["user"].lower() for w in ["share", "tell", "write", "type", "text"]):
+            input_val = st.text_area("✍️ Enter your input", key=f"text_{idx}")
+            input_ready = bool(input_val)
+        else:
+            input_ready = True
 
-        # Only show Run Step when required input is ready
-        run_enabled = True
-        if "upload" in step["user"].lower() and not uploaded_file:
-            run_enabled = False
-        if "text" in step["user"].lower() and not st.session_state.get(input_key):
-            run_enabled = False
-
-        if run_enabled and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+        # Show run button if needed
+        if step_key in st.session_state["executed_steps"]:
+            result = st.session_state["executed_steps"][step_key]
+            st.success("✅ Step completed.")
+            st.caption(f"📝 Result: {result}")
+        elif input_ready and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
             with st.spinner("Running..."):
+                result = None
                 title = step["title"].lower()
-                input_val = st.session_state.get(input_key)
 
+                # Idea
                 if "idea" in title:
+                    from ideation.generator import generate_ideas
                     ideas = generate_ideas(full_prompt)
-                    for i, idea in enumerate(ideas, 1):
-                        idea_clean = idea.lstrip("0123456789.-• ").strip()
-                        st.markdown(f"💡 **Idea {i}:** {idea_clean}")
+                    result = "\n".join([f"💡 {i+1}. {idea.lstrip('1234567890.-• ').strip()}" for i, idea in enumerate(ideas)])
+                    for line in result.split("\n"):
+                        st.markdown(line)
+
+                # Script
                 elif "script" in title:
                     from modules.script import generate_script
-                    st.success(generate_script(input_val or full_prompt))
+                    result = generate_script(input_val or full_prompt)
+                    st.success(result)
+
+                # Thumbnail
                 elif "thumbnail" in title or "image" in title:
                     from modules.thumbnail import generate_thumbnail
-                    st.image(generate_thumbnail(input_val or full_prompt), caption="Generated Thumbnail")
+                    result = generate_thumbnail(input_val or full_prompt)
+                    st.image(result, caption="Generated Thumbnail")
+
+                # Scheduler
                 elif "schedule" in title or "post" in title:
                     from modules.scheduler import schedule_post
-                    st.success(schedule_post(input_val or full_prompt))
+                    result = schedule_post(input_val or full_prompt)
+                    st.success(result)
+
+                # Upload step
+                elif "upload" in title or "record" in title:
+                    result = f"📤 File received: {uploaded_file.name}" if uploaded_file else "No file uploaded"
+                    st.success(result)
+
                 else:
-                    st.info("⚙️ This step ran, but doesn’t have a custom handler yet.")
+                    result = "✅ Step complete — no specific handler yet."
+                    st.info(result)
+
+                # Store result
+                st.session_state["executed_steps"][step_key] = result
+
+                # Suggest next step
+                if idx < len(steps):
+                    st.markdown("---")
+                    st.info(f"👉 Want to move on to **Step {idx+1}**: {steps[idx]['title']}?")
+
+
 
 
 

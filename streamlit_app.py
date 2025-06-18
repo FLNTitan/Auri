@@ -135,9 +135,10 @@ if section == "🧠 Content Ideas":
 
         Each step must be:
         - A clear title (e.g. "Generate Ideas", "Script Writing", "Upload Media")
-        - Two subpoints:
+        - Three subpoints:
         1. What Auri will do (start with "I will...")
         2. What the user needs to do (start with "To do that, I’ll need you to...")
+        3. Input type: either "text", "upload", or "none"
 
         Output format (strict):
         1. Step Title – I will... To do that, I’ll need you to...
@@ -157,16 +158,15 @@ if section == "🧠 Content Ideas":
 
         steps = []
         for line in step_lines:
-            match = re.match(r"^\s*(\d+)[\).\s-]+(.*?)[\s–-]+(I will.*?\.)(\s+To do that, I’ll need you to.*?)$", line.strip())
+            match = re.match(r"^\s*(\d+)[\).\s-]+(.*?)\s+\|\s+(I will.*?)\s+\|\s+(To do that.*?)\s+\|\s+(text|upload|none)$", line.strip(), re.IGNORECASE)
             if match:
-                title = match.group(2).strip(": ")
-                auri_part = match.group(3).strip()
-                user_part = match.group(4).strip()
                 steps.append({
-                    "title": title,
-                    "auri": auri_part,
-                    "user": user_part,
+                    "title": match.group(2).strip(),
+                    "auri": match.group(3).strip(),
+                    "user": match.group(4).strip(),
+                    "input_type": match.group(5).strip().lower()
                 })
+
 
         # Render the workflow
         if "executed_steps" not in st.session_state:

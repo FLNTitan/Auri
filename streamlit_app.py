@@ -94,7 +94,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Ideation Section
+# Content Ideas Workflow
 # ----------------------------
 if section == "🧠 Content Ideas":
     st.markdown("## 🧠 Content Ideation")
@@ -106,7 +106,7 @@ if section == "🧠 Content Ideas":
             st.session_state["prompt"] = "Plan 3 viral TikTok posts with script, thumbnail, and schedule"
         if cols[1].button("🎨 Weekend Reel Builder"):
             st.session_state["prompt"] = "Create 2 weekend Instagram Reels with catchy hooks and music"
-        if cols[2].button("🎧 YouTube-to-Short"):
+        if cols[2].button("🎬 YouTube-to-Short"):
             st.session_state["prompt"] = "Repurpose latest YouTube video into 3 Shorts with new captions"
 
     user_prompt = st.text_input("Or describe your goal...", placeholder="e.g. Turn my last 2 tweets into a carousel and reel")
@@ -123,7 +123,6 @@ if section == "🧠 Content Ideas":
     else:
         st.markdown(f"#### 💡 Auri is preparing your flow: _{full_prompt}_")
 
-        # Build OpenAI prompt
         workflow_prompt = f"""
 You are Auri, an AI content strategist working with a human creator.
 
@@ -131,17 +130,15 @@ The user’s goal is: "{full_prompt}"
 
 Break this goal into only the 3–6 steps required to complete it.
 
-Each step must be:
+Each step must include:
 - A clear title (e.g. "Generate Ideas", "Script Writing", "Upload Media")
 - Two subpoints:
-1. What Auri will do (start with "I will...")
-2. What the user needs to do (start with "To do that, I’ll need you to...")
+  1. I will... (what Auri will do)
+  2. To do that, I’ll need you to... (what the user needs to do)
 
-Output format (strict):
-1. Step Title – I will... To do that, I’ll need you to...
-2. Step Title – I will... To do that, I’ll need you to...
-
-No intros. No summaries.
+Format:
+1. Step Title | I will... | To do that, I’ll need you to...
+...
 """
 
         response = client.chat.completions.create(
@@ -154,102 +151,89 @@ No intros. No summaries.
 
         steps = []
         for line in step_lines:
-            match = re.match(r"^\s*(\d+)[\).\s-]+(.*?)\s+-\s+(I will.*?)\s+(To do that.*?)$", line.strip())
+            match = re.match(r"^\s*\d+\.\s*(.*?)\s+\|\s+(I will.*?)\s+\|\s+(To do that.*?)$", line.strip(), re.IGNORECASE)
             if match:
-                user_text = match.group(4).strip().lower()
-                input_type = (
-                    "upload" if any(w in user_text for w in ["upload", "file", "media", "video"]) else
-                    "text" if any(w in user_text for w in ["write", "type", "text", "share", "tell"]) else
-                    "none"
-                )
                 steps.append({
-                    "title": match.group(2).strip(),
-                    "auri": match.group(3).strip(),
-                    "user": match.group(4).strip(),
-                    "input_type": input_type
+                    "title": match.group(1).strip(),
+                    "auri": match.group(2).strip(),
+                    "user": match.group(3).strip()
                 })
 
-        if "executed_steps" not in st.session_state:
-            st.session_state["executed_steps"] = {}
+        if steps:
+            if "executed_steps" not in st.session_state:
+                st.session_state["executed_steps"] = {}
 
-        st.markdown("---")
-        st.markdown("### ✅ Here's how we'll make it happen:")
+            st.markdown("---")
+            st.markdown("### ✅ Here's how we'll make it happen:")
 
-        for idx, step in enumerate(steps, 1):
-            step_key = f"step_{idx}"
-            st.markdown(f"**Step {idx}: {step['title']}**")
-            st.caption(f"🤖 {step['auri']}")
-            st.caption(f"📥 {step['user']}")
+            for idx, step in enumerate(steps, 1):
+                step_key = f"step_{idx}"
+                st.markdown(f"**Step {idx}: {step['title']}**")
+                st.caption(f"🤖 {step['auri']}")
+                st.caption(f"📥 {step['user']}")
 
-            input_val = None
-            uploaded_file = None
-            input_ready = False
-
-            if step["input_type"] == "upload":
-                uploaded_file = st.file_uploader("📤 Upload media", key=f"upload_{idx}")
-                input_ready = uploaded_file is not None
-                input_val = uploaded_file.name if uploaded_file else None
-            elif step["input_type"] == "text":
-                input_val = st.text_area("✍️ Enter your input", key=f"text_{idx}")
-                input_ready = bool(input_val)
-            else:
+                input_val = None
+                uploaded_file = None
                 input_ready = True
 
-            if step_key in st.session_state["executed_steps"]:
-                result = st.session_state["executed_steps"][step_key]
-                st.success("✅ Step completed.")
-                st.caption(f"📝 Result: {result}")
-            elif input_ready and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
-                with st.spinner("Running..."):
-                    result = None
-                    title = step["title"].lower()
+                if "upload" in step["user"].lower():
+                    uploaded_file = st.file_uploader("📤 Upload media", key=f"upload_{idx}")
+                    input_ready = uploaded_file is not None
+                    input_val = uploaded_file.name if uploaded_file else None
+                elif any(word in step["user"].lower() for word in ["write", "text", "type", "share"]):
+                    input_val = st.text_area("✍️ Enter your input", key=f"text_{idx}")
+                    input_ready = bool(input_val)
 
-                    if "idea" in title:
-                        ideas = generate_ideas(full_prompt)
-                        result = "\n".join([f"💡 {i+1}. {idea.lstrip('1234567890.-• ').strip()}" for i, idea in enumerate(ideas)])
-                        for line in result.split("\n"):
-                            st.markdown(line)
+                if step_key in st.session_state["executed_steps"]:
+                    result = st.session_state["executed_steps"][step_key]
+                    st.success("✅ Step completed.")
+                    st.caption(f"📝 Result: {result}")
+                elif input_ready and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+                    with st.spinner("Running..."):
+                        result = None
+                        title = step["title"].lower()
 
-                    elif "script" in title:
-                        from modules.script import generate_script
-                        result = generate_script(input_val or full_prompt)
-                        st.success(result)
+                        if "idea" in title:
+                            ideas = generate_ideas(full_prompt)
+                            result = "\n".join([f"💡 {i+1}. {idea}" for i, idea in enumerate(ideas)])
+                            for line in result.split("\n"):
+                                st.markdown(line)
+                        elif "script" in title:
+                            from modules.script import generate_script
+                            result = generate_script(input_val or full_prompt)
+                            st.success(result)
+                        elif "thumbnail" in title or "image" in title:
+                            from modules.thumbnail import generate_thumbnail
+                            result = generate_thumbnail(input_val or full_prompt)
+                            st.image(result, caption="Generated Thumbnail")
+                        elif "schedule" in title or "post" in title:
+                            from modules.scheduler import schedule_post
+                            result = schedule_post(input_val or full_prompt)
+                            st.success(result)
+                        elif "upload" in title:
+                            result = f"📤 File received: {uploaded_file.name}" if uploaded_file else "No file uploaded"
+                            st.success(result)
+                        else:
+                            result = "✅ Step complete — no handler yet."
+                            st.info(result)
 
-                    elif "thumbnail" in title or "image" in title:
-                        from modules.thumbnail import generate_thumbnail
-                        result = generate_thumbnail(input_val or full_prompt)
-                        st.image(result, caption="Generated Thumbnail")
+                        st.session_state["executed_steps"][step_key] = result
 
-                    elif "schedule" in title or "post" in title:
-                        from modules.scheduler import schedule_post
-                        result = schedule_post(input_val or full_prompt)
-                        st.success(result)
-
-                    elif "upload" in title or "record" in title:
-                        result = f"📤 File received: {uploaded_file.name}" if uploaded_file else "No file uploaded"
-                        st.success(result)
-
-                    else:
-                        result = "✅ Step complete — no specific handler yet."
-                        st.info(result)
-
-                    st.session_state["executed_steps"][step_key] = result
-
-                if idx < len(steps):
-                    st.markdown("---")
-                    st.info(f"👉 Want to move on to **Step {idx+1}**: {steps[idx]['title']}?")
+                        if idx < len(steps):
+                            st.markdown("---")
+                            st.info(f"👉 Ready to continue with **Step {idx+1}**: {steps[idx]['title']}?")
 
 # ----------------------------
-# Studio Section Placeholder
+# Other Sections
 # ----------------------------
 elif section == "🎨 Editing Studio":
     st.markdown("## 🎨 Editing Studio")
-    st.info("Auri's content editor is coming soon. This will be your visual workspace for posts and videos.")
+    st.info("Auri's content editor is coming soon.")
 
 elif section == "🗖️ Posting & Scheduling":
     st.markdown("## 🗖️ Posting & Scheduling")
-    st.info("Here you’ll be able to plan and schedule your social media content visually.")
+    st.info("Plan and schedule your content visually.")
 
 elif section == "📊 Analytics":
     st.markdown("## 📊 Performance Analytics")
-    st.info("Auri will track and summarize your content performance here in beautiful charts and reports.")
+    st.info("Auri will track and summarize your content performance.")

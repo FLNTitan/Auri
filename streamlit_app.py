@@ -178,28 +178,45 @@ if any(k in st.session_state for k in ["prompt"]):
         st.markdown(f"**Step {idx}: {step['title']}**")
         st.caption(f"🤖 {step['auri']}")
         st.caption(f"📥 {step['user']}")
-        if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+
+        input_key = f"input_{idx}"
+        uploaded_file = None
+
+        # Decide what kind of input is needed
+        if any(word in step["user"].lower() for word in ["upload", "file", "media", "video"]):
+            uploaded_file = st.file_uploader("📤 Upload your media file", key=f"upload_{idx}")
+        elif any(word in step["user"].lower() for word in ["share", "tell", "write", "type", "enter", "text"]):
+            st.session_state[input_key] = st.text_area("✍️ Enter your input", key=f"text_{idx}")
+
+        # Only show Run Step when required input is ready
+        run_enabled = True
+        if "upload" in step["user"].lower() and not uploaded_file:
+            run_enabled = False
+        if "text" in step["user"].lower() and not st.session_state.get(input_key):
+            run_enabled = False
+
+        if run_enabled and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
             with st.spinner("Running..."):
                 title = step["title"].lower()
+                input_val = st.session_state.get(input_key)
+
                 if "idea" in title:
-                    from ideation.generator import generate_ideas
                     ideas = generate_ideas(full_prompt)
                     for i, idea in enumerate(ideas, 1):
                         idea_clean = idea.lstrip("0123456789.-• ").strip()
                         st.markdown(f"💡 **Idea {i}:** {idea_clean}")
                 elif "script" in title:
                     from modules.script import generate_script
-                    st.success(generate_script(full_prompt))
+                    st.success(generate_script(input_val or full_prompt))
                 elif "thumbnail" in title or "image" in title:
                     from modules.thumbnail import generate_thumbnail
-                    st.image(generate_thumbnail(full_prompt), caption="Generated Thumbnail")
+                    st.image(generate_thumbnail(input_val or full_prompt), caption="Generated Thumbnail")
                 elif "schedule" in title or "post" in title:
                     from modules.scheduler import schedule_post
-                    st.success(schedule_post(full_prompt))
-                elif "upload" in title or "media" in title or "record" in title:
-                    st.warning("📤 Please upload the required video/audio files to proceed.")
+                    st.success(schedule_post(input_val or full_prompt))
                 else:
-                    st.info("⚙️ No handler yet for this step.")
+                    st.info("⚙️ This step ran, but doesn’t have a custom handler yet.")
+
 
 
 # ----------------------------

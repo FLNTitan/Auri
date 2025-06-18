@@ -1,5 +1,7 @@
 import streamlit as st
 from ideation.generator import generate_ideas
+from openai import OpenAI
+import re
 
 # ----------------------------
 # Page Setup
@@ -110,13 +112,10 @@ if section == "🧠 Content Ideas":
 
     user_prompt = st.text_input("Or describe your goal...", placeholder="e.g. Turn my last 2 tweets into a carousel and reel")
 
-from openai import OpenAI
-import re
-
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-if "prompt" not in st.session_state:
-    st.session_state["prompt"] = ""
+if not st.session_state.get("prompt", "").strip():
+    st.info("👆 Start by selecting a quick recipe or describing your goal above.")
 
 # Update state from input or button
 if user_prompt and user_prompt != st.session_state["prompt"]:

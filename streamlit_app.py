@@ -134,7 +134,7 @@ Each step must include:
 - A clear title (e.g. "Generate Ideas", "Script Writing", "Upload Media")
 - Two subpoints:
   1. I will... (what Auri will do)
-  2. To do that, I’ll need you to... (what the user needs to do)
+  2. To do that, I’ll need you to... (what the user needs to do, be very clear with the instructions or questions that you want to ask the user to get the needed information)
 
 Format:
 1. Step Title | I will... | To do that, I’ll need you to...

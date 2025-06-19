@@ -240,7 +240,6 @@ if section == "🧠 Content Ideas":
                                 tone=tone
                             )
                             st.code(result, language="markdown")
-                            st.success(result)
                         elif "thumbnail" in title or "image" in title:
                             from modules.thumbnail import generate_thumbnail
                             result = generate_thumbnail(input_val or full_prompt)

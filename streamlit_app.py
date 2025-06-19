@@ -159,23 +159,25 @@ if section == "🧠 Content Ideas":
         No introductions. No summaries.
         """
 
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": workflow_prompt}],
-            temperature=0.5,
-        )
+        if "auri_steps" not in st.session_state:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": workflow_prompt}],
+                temperature=0.5,
+            )
+            step_lines = response.choices[0].message.content.strip().split("\n")
+            parsed_steps = []
+            for line in step_lines:
+                match = re.match(r"^\s*\d+\.\s*(.*?)\s+\|\s+(I will.*?)\s+\|\s+(To do that.*?)$", line.strip(), re.IGNORECASE)
+                if match:
+                    parsed_steps.append({
+                        "title": match.group(1).strip(),
+                        "auri": match.group(2).strip(),
+                        "user": match.group(3).strip()
+                    })
+            st.session_state["auri_steps"] = parsed_steps
 
-
-        step_lines = response.choices[0].message.content.strip().split("\n")
-        steps = []
-        for line in step_lines:
-            match = re.match(r"^\s*\d+\.\s*(.*?)\s+\|\s+(I will.*?)\s+\|\s+(To do that.*?)$", line.strip(), re.IGNORECASE)
-            if match:
-                steps.append({
-                    "title": match.group(1).strip(),
-                    "auri": match.group(2).strip(),
-                    "user": match.group(3).strip()
-                })
+        steps = st.session_state["auri_steps"]
 
         if steps:
             if "executed_steps" not in st.session_state:
@@ -220,9 +222,9 @@ if section == "🧠 Content Ideas":
 
                         if "idea" in title:
                             ideas = generate_ideas(full_prompt, input_val)
-                            result = "\n".join([f"💡 {i+1}. {idea}" for i, idea in enumerate(ideas)])
-                            for line in result.split("\n"):
-                                st.markdown(line)
+                            result = "\n".join(ideas)
+                            for idea in ideas:
+                                st.markdown(idea)
                         elif "script" in title:
                             from modules.script import generate_script
                             tone = st.selectbox("🎭 Select a tone", ["Informative", "Funny", "Shocking"], key=f"tone_{idx}")

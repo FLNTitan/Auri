@@ -124,6 +124,9 @@ if section == "🧠 Content Ideas":
 
         ⚠️ Be smart: Do not ask the user to help with tasks Auri can already do or will be able to do soon.
 
+        ✅ If the user’s request sounds narrow (e.g. only asking for ideas or a caption), fulfill that—but also suggest optional next steps (like thumbnails, scheduling, optimization, everything that is in the full content creation pipeline that is in the scope of Auri's capabilities) at the end in a friendly, natural tone:
+        “Would you also like help with generating thumbnails or scheduling the posts?”
+
         ---
 
         ### ✅ Auri’s CURRENT capabilities:
@@ -158,6 +161,7 @@ if section == "🧠 Content Ideas":
 
         No introductions. No summaries.
         """
+
 
         if "auri_steps" not in st.session_state:
             response = client.chat.completions.create(

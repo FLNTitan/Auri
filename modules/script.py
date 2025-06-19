@@ -1,31 +1,32 @@
-from openai import OpenAI
-import streamlit as st
-
 def generate_script(goal, user_input=None, previous_output=None, platform="TikTok", tone="Informative"):
+    from openai import OpenAI
+    import streamlit as st
+
     client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
     prompt = f"""
-You are Auri, an AI scriptwriting assistant for social media.
+You are Auri, an AI scriptwriting assistant.
 
-🧠 User’s original goal:
-"{goal}"
+🧠 The user's goal:
+\"{goal}\"
 
-📝 User input for this step:
-"{user_input or "N/A"}"
+📥 Input the user gave for this step:
+\"{user_input or "N/A"}\"
 
-📦 Output of previous step:
-"{previous_output or "N/A"}"
+💡 Ideas from the previous step:
+\"{previous_output or "N/A"}\"
 
-🎯 Your task:
-Write a {tone.lower()} script for {platform}.
+🎯 Write a separate, short {platform} script for each idea above. 
+Each script should include:
+- A hook line
+- 2–3 key points
+- A closing line or CTA
 
-Structure:
-- Hook
-- 2–3 Key Points
-- Call-to-Action (CTA)
+Use a {tone.lower()} tone. Format each script clearly with its title.
+Return only the scripts. No commentary.
 
-Be concise, platform-native, and engaging.
-"""
+Be concise, platform native and engaging
+    """
 
     response = client.chat.completions.create(
         model="gpt-4o",

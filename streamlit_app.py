@@ -121,7 +121,7 @@ if section == "🧠 Content Ideas":
     if not full_prompt:
         st.info("👆 Start by selecting a quick recipe or describing your goal above.")
     else:
-        st.markdown(f"#### 💡 Auri is preparing your flow: _{full_prompt}_")
+        st.markdown(f"#### 💡 Auri is preparing your flow ####")
 
         workflow_prompt = f"""
             You are Auri, an AI social media copilot that guides content creators through a complete workflow using natural language.
@@ -233,7 +233,17 @@ if section == "🧠 Content Ideas":
                                 st.markdown(line)
                         elif "script" in title:
                             from modules.script import generate_script
-                            result = generate_script(input_val or full_prompt)
+
+                            # User selects tone/platform per script step
+                            tone = st.selectbox("🎭 Select a tone", ["Informative", "Funny", "Shocking"], key=f"tone_{idx}")
+                            platform = st.selectbox("📱 Select platform", ["TikTok", "Instagram", "YouTube Shorts"], key=f"platform_{idx}")
+
+                            # Generate script based on user input or full prompt
+                            result = generate_script(input_val or full_prompt, platform=platform, tone=tone)
+
+                            # Display output nicely
+                            st.code(result, language="markdown")
+
                             st.success(result)
                         elif "thumbnail" in title or "image" in title:
                             from modules.thumbnail import generate_thumbnail

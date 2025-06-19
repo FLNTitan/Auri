@@ -23,9 +23,12 @@ Your task:
 - DO NOT include thumbnails, scripts, or scheduling details
 
 Respond only in this format:
-💡 1. [Idea one]
-💡 2. [Idea two]
-💡 3. [Idea three]
+[Idea one]
+[Idea two]
+[Idea three]
+.
+.
+.
 """
 
     response = client.chat.completions.create(

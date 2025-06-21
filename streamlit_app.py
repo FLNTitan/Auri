@@ -124,8 +124,16 @@ if section == "🧠 Content Ideas":
 
         ⚠️ Be smart: Do not ask the user to help with tasks Auri can already do or will be able to do soon.
 
-        ✅ If the user’s request sounds narrow (e.g. only asking for ideas or a caption), fulfill that—but also suggest optional next steps (like thumbnails, scheduling, optimization, everything that is in the full content creation pipeline that is in the scope of Auri's capabilities) at the end in a friendly, natural tone:
-        “Would you also like help with generating thumbnails or scheduling the posts?”
+        ✅ If the user’s request sounds narrow (e.g. only asking for ideas or a caption), fulfill that — but also suggest optional next steps Auri can help with, to complete the content creation pipeline.
+
+        At the end of your response, do the following:
+
+        - Check which of Auri’s capabilities were **not included** in the generated steps.
+        - If relevant steps are missing based on the user’s goal, suggest them as a friendly follow-up:
+
+        🧩 “Would you also like help with: [missing steps]?”
+
+        Only suggest useful and missing ones. Do not repeat steps already included.
 
         ---
 
@@ -180,6 +188,22 @@ if section == "🧠 Content Ideas":
                         "user": match.group(3).strip()
                     })
             st.session_state["auri_steps"] = parsed_steps
+
+            # Track which capabilities were included
+            included_titles = [step["title"].lower() for step in parsed_steps]
+            auri_capabilities = {
+                "generate ideas": "Generate Ideas",
+                "script writing": "Script Writing",
+                "suggest captions and hashtags": "Suggest Captions and Hashtags",
+                "generate thumbnails": "Generate Thumbnails or Cover Images",
+                "create content plans": "Create Content Plans",
+                "schedule posts": "Schedule Posts"
+            }
+            missing_steps = [
+                readable for key, readable in auri_capabilities.items()
+                if key not in included_titles
+            ]
+            st.session_state["auri_missing_suggestions"] = missing_steps
 
         steps = st.session_state["auri_steps"]
 
@@ -267,6 +291,13 @@ if section == "🧠 Content Ideas":
                         if idx < len(steps):
                             st.markdown("---")
                             st.info(f"👉 Ready to continue with **Step {idx+1}**: {steps[idx]['title']}?")
+                        
+                        # If we're at the last step, and Auri has more to offer
+                        if idx == len(steps) and st.session_state.get("auri_missing_suggestions"):
+                            suggestions = ", ".join(st.session_state["auri_missing_suggestions"])
+                            st.markdown("---")
+                            st.info(f"🧩 Would you also like help with: {suggestions}?")
+
 
 elif section == "🎨 Editing Studio":
     st.markdown("## 🎨 Editing Studio")

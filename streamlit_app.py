@@ -213,6 +213,13 @@ if section == "🧠 Content Ideas":
 
             st.markdown("---")
             st.markdown("### ✅ Here's how we'll make it happen:")
+            
+            # Show optional suggestions up front if available
+            if st.session_state.get("auri_missing_suggestions"):
+                with st.expander("🧩 Want to do even more? Auri can also help with:"):
+                    st.markdown(", ".join(f"**{s}**" for s in st.session_state["auri_missing_suggestions"]))
+                    st.info("These are optional next steps you can add anytime to complete your content workflow.")
+
 
             for idx, step in enumerate(steps, 1):
                 step_key = f"step_{idx}"

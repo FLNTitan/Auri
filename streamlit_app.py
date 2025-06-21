@@ -270,6 +270,45 @@ if section == "🧠 Content Ideas":
                                 tone=tone
                             )
                             st.code(result, language="markdown")
+                        elif "caption" in title or "hashtag" in title:
+                            from modules.captions import generate_caption
+                            from modules.hashtags import generate_hashtags
+
+                            idea_list = st.session_state["auri_context"]["step_outputs"].get("step_1", [])
+                            script_list = st.session_state["auri_context"]["step_outputs"].get("step_2", [])
+                            if isinstance(idea_list, str):
+                                idea_list = [idea_list]
+                            if isinstance(script_list, str):
+                                script_list = [script_list]
+
+                            platform = st.selectbox("📱 Select platform", ["TikTok", "Instagram", "YouTube Shorts"], key=f"platform_caption_{idx}")
+                            tone = st.selectbox("🎭 Select tone", ["Funny", "Inspiring", "Bold", "Shocking"], key=f"tone_caption_{idx}")
+
+                            for i, (idea, script) in enumerate(zip(idea_list, script_list), start=1):
+                                st.markdown(f"### 📝 Post {i}: {idea}")
+
+                                # Caption
+                                caption_result = generate_caption(
+                                    goal=full_prompt,
+                                    platform=platform,
+                                    tone=tone,
+                                    idea=idea,
+                                    script=script,
+                                    openai_key=st.secrets["openai"]["api_key"]
+                                )
+                                st.markdown("#### ✨ Suggested Caption")
+                                st.code(caption_result, language="markdown")
+
+                                # Hashtags
+                                hashtag_result = generate_hashtags(
+                                    goal=full_prompt,
+                                    idea=idea,
+                                    script=script,
+                                    platform=platform,
+                                    openai_key=st.secrets["openai"]["api_key"]
+                                )
+                                st.markdown("#### 🔖 Hashtag Suggestions")
+                                st.markdown(hashtag_result)
                         elif "thumbnail" in title or "image" in title:
                             from modules.thumbnail import generate_thumbnail
                             result = generate_thumbnail(input_val or full_prompt)

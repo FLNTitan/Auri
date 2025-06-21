@@ -213,13 +213,6 @@ if section == "🧠 Content Ideas":
 
             st.markdown("---")
             st.markdown("### ✅ Here's how we'll make it happen:")
-            
-            # Show optional suggestions up front if available
-            if st.session_state.get("auri_missing_suggestions"):
-                with st.expander("🧩 Want to do even more? Auri can also help with:"):
-                    st.markdown(", ".join(f"**{s}**" for s in st.session_state["auri_missing_suggestions"]))
-                    st.info("These are optional next steps you can add anytime to complete your content workflow.")
-
 
             for idx, step in enumerate(steps, 1):
                 step_key = f"step_{idx}"
@@ -299,23 +292,23 @@ if section == "🧠 Content Ideas":
                             st.markdown("---")
                             st.info(f"👉 Ready to continue with **Step {idx+1}**: {steps[idx]['title']}?")
                         
-                        # Show suggestion prompt just before the last step is run
-                        if idx == len(steps) and st.session_state.get("auri_missing_suggestions"):
-                            suggestions = st.session_state["auri_missing_suggestions"]
+            # Show suggestion prompt after all steps are displayed
+            if st.session_state.get("auri_missing_suggestions"):
+                suggestions = st.session_state["auri_missing_suggestions"]
 
-                            if "expand_extra_steps" not in st.session_state:
-                                st.session_state["expand_extra_steps"] = False
+                if "expand_extra_steps" not in st.session_state:
+                    st.session_state["expand_extra_steps"] = False
 
-                            st.markdown("---")
-                            st.info(f"🧩 Auri can help you even more! Would you also like help with: {', '.join(suggestions)}?")
+                st.markdown("---")
+                st.info(f"🧩 Auri can help you even more! Would you also like help with: {', '.join(suggestions)}?")
 
-                            if st.button("➕ Yes, show additional steps", key="extra_steps_button"):
-                                st.session_state["expand_extra_steps"] = True
+                if st.button("➕ Yes, show additional steps", key="extra_steps_button"):
+                    st.session_state["expand_extra_steps"] = True
 
-                            if st.session_state["expand_extra_steps"]:
-                                st.markdown("### 🔄 Additional Auri Capabilities You Haven’t Used Yet:")
-                                for item in suggestions:
-                                    st.markdown(f"- ✅ **{item}** – available in upcoming versions or can be triggered manually.")
+                if st.session_state["expand_extra_steps"]:
+                    st.markdown("### 🔄 Additional Auri Capabilities You Haven’t Used Yet:")
+                    for item in suggestions:
+                        st.markdown(f"- ✅ **{item}** – available in upcoming versions or can be triggered manually.")
 
 
 elif section == "🎨 Editing Studio":

@@ -3,12 +3,47 @@ from ideation.generator import generate_ideas
 from openai import OpenAI
 import re
 
+TEXT = {
+    "English": {
+        "nav": ["🧠 Content Ideas", "🎨 Editing Studio", "🗖️ Posting & Scheduling", "📊 Analytics"],
+        "title": "✨ Auri: Your AI Social Media Copilot",
+        "subtitle": "Plan, create, and publish your content with intelligent guidance and powerful creative tools 🚀",
+        "start": "👆 Start by selecting a quick recipe or describing your goal above.",
+        "input_label": "✍️ Enter your input",
+        "upload_label": "📤 Upload media",
+        "step_label": "👉 Ready to continue with Step",
+        "missing_prompt": "🧩 Auri can help you even more! Would you also like help with:",
+        "show_more": "➕ Yes, show additional steps",
+        "bonus_title": "🔄 Additional Auri Capabilities You Haven’t Used Yet:"
+    },
+    "עברית": {
+        "nav": ["🧠 רעיונות לתוכן", "🎨 סטודיו לעריכה", "🗖️ תזמון פרסומים", "📊 ניתוחים"],
+        "title": "✨ Auri: העוזר החכם שלך ליצירת תוכן",
+        "subtitle": "תכנן, צור ופרסם תוכן בצורה חכמה ומהירה עם Auri 🚀",
+        "start": "👆 בחר תבנית התחלה מהירה או כתוב מה אתה רוצה ש-Auri יעשה בשבילך.",
+        "input_label": "✍️ מה תרצה להוסיף כאן?",
+        "upload_label": "📤 העלה קובץ או מדיה רלוונטית",
+        "step_label": "👉 נמשיך לשלב הבא: שלב",
+        "missing_prompt": "🧩 רוצה ש-Auri יעזור גם עם:",
+        "show_more": "➕ כן, תראה לי עוד שלבים",
+        "bonus_title": "🔄 יכולות נוספות של Auri שטרם נוצלו:"
+    }
+}
+
+
 st.set_page_config(
     page_title="Auri | Your AI Social Media Copilot",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+if "auri_language" not in st.session_state:
+    st.session_state["auri_language"] = "English"
+
+language = st.selectbox("🌍 Choose language", ["English", "עברית"], index=0 if st.session_state["auri_language"] == "English" else 1)
+st.session_state["auri_language"] = language
+
 
 st.markdown("""
 <style>
@@ -56,6 +91,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+if st.session_state["auri_language"] == "עברית":
+    st.markdown("""
+    <style>
+    html[dir="ltr"] {
+        direction: rtl;
+    }
+    .stMarkdown, .css-1kyxreq, .css-10trblm {
+        text-align: right;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 with st.sidebar:
     logo_col = st.columns([1, 2, 1])[1]
     with logo_col:
@@ -64,13 +112,13 @@ with st.sidebar:
     st.markdown("## 🧽 Navigation")
     section = st.radio(
         "Jump to",
-        ["🧠 Content Ideas", "🎨 Editing Studio", "🗖️ Posting & Scheduling", "📊 Analytics"]
+        TEXT[language]["nav"]
     )
 
-st.markdown("""
+st.markdown(f"""
     <div style='text-align: center; margin-top: 2rem; margin-bottom: 1rem;'>
-        <h1 style='color: #6C63FF; font-size: 2.8rem;'>✨ Auri: Your AI Social Media Copilot</h1>
-        <p style='font-size: 1.1rem; color: #1F2937;'>Plan, create, and publish your content with intelligent guidance and powerful creative tools 🚀</p>
+        <h1 style='color: #6C63FF; font-size: 2.8rem;'>{TEXT[language]["title"]}</h1>
+        <p style='font-size: 1.1rem; color: #1F2937;'>{TEXT[language]["subtitle"]}</p>
     </div>
 """, unsafe_allow_html=True)
 

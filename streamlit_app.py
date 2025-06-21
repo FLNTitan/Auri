@@ -330,6 +330,7 @@ if section == "🧠 Content Ideas":
 
                             idea_list = st.session_state["auri_context"]["step_outputs"].get("step_1", [])
                             script_list = st.session_state["auri_context"]["step_outputs"].get("step_2", [])
+
                             if isinstance(idea_list, str):
                                 idea_list = [idea_list]
                             if isinstance(script_list, str):
@@ -338,10 +339,13 @@ if section == "🧠 Content Ideas":
                             platform = st.selectbox("📱 Select platform", ["TikTok", "Instagram", "YouTube Shorts"], key=f"platform_caption_{idx}")
                             tone = st.selectbox("🎭 Select tone", ["Funny", "Inspiring", "Bold", "Shocking"], key=f"tone_caption_{idx}")
 
+                            combined_results = []
+                            captions = []
+                            hashtags = []
+
                             for i, (idea, script) in enumerate(zip(idea_list, script_list), start=1):
                                 st.markdown(f"### 📝 Post {i}: {idea}")
 
-                                # Caption
                                 caption_result = generate_caption(
                                     goal=full_prompt,
                                     platform=platform,
@@ -352,8 +356,8 @@ if section == "🧠 Content Ideas":
                                 )
                                 st.markdown("#### ✨ Suggested Caption")
                                 st.code(caption_result, language="markdown")
+                                captions.append(caption_result)
 
-                                # Hashtags
                                 hashtag_result = generate_hashtags(
                                     goal=full_prompt,
                                     idea=idea,
@@ -363,6 +367,17 @@ if section == "🧠 Content Ideas":
                                 )
                                 st.markdown("#### 🔖 Hashtag Suggestions")
                                 st.markdown(hashtag_result)
+                                hashtags.append(hashtag_result)
+
+                                combined_results.append(f"✨ Caption:\n{caption_result}\n\n🔖 Hashtags:\n{hashtag_result}")
+
+                            # Save separately in context
+                            st.session_state["auri_context"]["captions"] = captions
+                            st.session_state["auri_context"]["hashtags"] = hashtags
+
+                            # And save for this step summary
+                            result = "\n\n---\n\n".join(combined_results)
+
                         elif "thumbnail" in title or "image" in title:
                             from modules.thumbnail import generate_thumbnail
                             result = generate_thumbnail(input_val or full_prompt)

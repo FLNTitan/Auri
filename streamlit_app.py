@@ -38,13 +38,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-if "auri_language" not in st.session_state:
-    st.session_state["auri_language"] = "English"
-
-language = st.selectbox("🌍 Choose language", ["English", "עברית"], index=0 if st.session_state["auri_language"] == "English" else 1)
-st.session_state["auri_language"] = language
-
-
 st.markdown("""
 <style>
     .block-container {
@@ -108,6 +101,12 @@ with st.sidebar:
     logo_col = st.columns([1, 2, 1])[1]
     with logo_col:
         st.image("auri_logo_circular.png", width=120)
+
+    if "auri_language" not in st.session_state:
+        st.session_state["auri_language"] = "English"
+
+    language = st.selectbox("🌍 Choose language", ["English", "עברית"], index=0 if st.session_state["auri_language"] == "English" else 1)
+    st.session_state["auri_language"] = language
 
     st.markdown("## 🧽 Navigation")
     section = st.radio(

@@ -51,6 +51,8 @@ def generate_script(goal, user_input=None, previous_output=None, user_instructio
     - Hashtags or analytics
     - Anything Auri will handle in other steps
 
+    - At least ONE script must clearly incorporate the user input (if there is any input given).
+
     🧾 Format strictly as markdown with headers for each section. Separate ideas with clear dividers.
 
     Be concise and platform native.

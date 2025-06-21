@@ -5,27 +5,29 @@ def generate_hashtags(goal, idea, script, platform, openai_key):
         return "⚠️ Missing information to generate hashtags."
 
     prompt = f"""
-    You are Auri, an expert social media strategist.
+You are Auri, an expert social media strategist.
 
-    Your task is to generate 5–10 highly relevant, non-generic hashtags for the following content.
+Your task is to generate a list of 5–10 highly relevant, non-generic hashtags for the given video content.
 
-    • Goal: "{goal}"
-    • Platform: {platform}
-    • Idea: "{idea}"
-    • Script: 
-    \"\"\"
-    {script}
-    \"\"\"
+🧠 Context:
+- Goal: "{goal}"
+- Platform: {platform}
+- Idea: "{idea}"
+- Script:
+\"\"\"
+{script}
+\"\"\"
 
-    Guidelines:
-    - Avoid overly generic tags like #foryou, #viral, #fun.
-    - Include niche-specific, clever, or high-conversion tags.
-    - Mix broad reach tags (1M+ posts) with niche-specific ones.
-    - Tailor the hashtag strategy to the selected platform ({platform}).
-    - Format the final hashtags in a clean **comma-separated list**, no explanations.
+📝 Guidelines:
+- No generic tags like #foryou, #viral, #fun
+- Include niche-relevant, clever, or trending tags
+- Mix high-reach (1M+) with niche-specific ones
+- Customize for {platform} audience behavior
+- Return hashtags as a **comma-separated list** only — no titles, no explanation.
 
-    Output ONLY the hashtags list.
-    """
+Output format:
+#tag1, #tag2, #tag3, ...
+"""
 
     try:
         client = OpenAI(api_key=openai_key)
@@ -36,4 +38,4 @@ def generate_hashtags(goal, idea, script, platform, openai_key):
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"⚠️ Error generating hashtags: {str(e)}"
+        return f"⚠️ Error generating hashtags: {e}"

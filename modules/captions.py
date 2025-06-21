@@ -1,35 +1,61 @@
 from openai import OpenAI
 
-def generate_caption(goal, platform, tone, idea, script, openai_key):
+def generate_caption(goal, platform, tone, idea, script, openai_key, language="English"):
     if not all([goal, platform, tone, idea, script]):
         return "⚠️ Missing information to generate a caption."
 
-    prompt = f"""
-    You are Auri, an expert social media strategist.
+    if language == "עברית":
+        prompt = f"""
+אתה Auri, מומחה לאסטרטגיית תוכן ברשתות חברתיות.
 
-    Here is the goal of the post: "{goal}"
-    Here is the platform: {platform}
-    Here is the tone: {tone}
-    Here is the idea: "{idea}"
-    Here is the full video script: 
-    \"\"\"
-    {script}
-    \"\"\"
+🎯 מטרת הפוסט: "{goal}"
+📱 פלטפורמה: {platform}
+🎭 טון: {tone}
+💡 רעיון: "{idea}"
+📜 תסריט וידאו:
+\"\"\"
+{script}
+\"\"\"
 
-    Your job is to write a perfect caption for this post, optimized for {platform}.
+המטרה שלך היא לכתוב כיתוב מושלם לפוסט הזה, מותאם לפלטפורמה {platform}.
 
-    The caption should include:
-    - A catchy hook (1st line)
-    - Emojis (if platform appropriate)
-    - Hashtags (relevant, not generic, 2–5 max)
-    - A natural call-to-action (like “Follow for more”)
-    - Line breaks and formatting that match {platform}'s style
+יש לכלול:
+- שורת פתיחה מושכת (hook)
+- אימוג'ים (רק אם מתאימים לפלטפורמה)
+- קריאה לפעולה טבעית (למשל “עקבו לעוד”)
+- עיצוב שורות שמתאים לפלטפורמה {platform}
 
-    ⚠️ Do NOT repeat lines from the script or idea word-for-word.
-    ✅ Make it feel human, native, and engaging.
+⚠️ אל תחזור מילה במילה על התסריט או הרעיון.
+✅ תכתוב כמו בן אדם — בצורה אותנטית, מושכת, וקלה לקריאה.
 
-    Output the final caption as a markdown block.
-    """
+📦 החזר את הכיתוב כבלוק Markdown בלבד.
+"""
+    else:
+        prompt = f"""
+You are Auri, an expert social media strategist.
+
+🎯 Goal: "{goal}"
+📱 Platform: {platform}
+🎭 Tone: {tone}
+💡 Idea: "{idea}"
+📜 Script:
+\"\"\"
+{script}
+\"\"\"
+
+Your job is to write a perfect caption for this post, optimized for {platform}.
+
+Include:
+- A catchy hook (1st line)
+- Emojis (if platform appropriate)
+- A natural call-to-action (like “Follow for more”)
+- Line breaks and formatting that match {platform}'s style
+- ⚠️ DO NOT include hashtags (they are handled separately)
+- ⚠️ DO NOT repeat script or idea lines verbatim
+- ✅ Make it feel human, natural, and engaging
+
+📦 Output the caption as a **markdown block only**, no explanations.
+"""
 
     try:
         client = OpenAI(api_key=openai_key)

@@ -331,16 +331,11 @@ if section == "🧠 Content Ideas":
                             idea_list = st.session_state["auri_context"]["step_outputs"].get("step_1", [])
                             script_list = st.session_state["auri_context"]["step_outputs"].get("step_2", [])
 
-                            # Ensure they're lists, even if only one item
+                            # Ensure they are lists
                             if isinstance(idea_list, str):
-                                idea_list = [idea_list]
+                                idea_list = [line for line in idea_list.split("\n") if line.strip()]
                             if isinstance(script_list, str):
-                                script_list = [script_list]
-
-                            # Trim to equal length to avoid mismatch
-                            min_len = min(len(idea_list), len(script_list))
-                            idea_list = idea_list[:min_len]
-                            script_list = script_list[:min_len]
+                                script_list = [line for line in script_list.split("\n") if line.strip()]
 
                             platform = st.selectbox("📱 Select platform", ["TikTok", "Instagram", "YouTube Shorts"], key=f"platform_caption_{idx}")
                             tone = st.selectbox("🎭 Select tone", ["Funny", "Inspiring", "Bold", "Shocking"], key=f"tone_caption_{idx}")
@@ -351,7 +346,8 @@ if section == "🧠 Content Ideas":
 
                             for i, (idea, script) in enumerate(zip(idea_list, script_list), start=1):
                                 st.markdown(f"### 📝 Post {i}")
-                                st.markdown(f"<div style='font-size: 1.05rem; color: #1F2937;'>{idea}</div>", unsafe_allow_html=True)
+                                cleaned_idea = idea.split(".", 1)[-1].strip()
+                                st.markdown(f"<div style='font-size: 1.05rem; color: #1F2937;'>{cleaned_idea}</div>", unsafe_allow_html=True)
 
                                 caption_result = generate_caption(
                                     goal=full_prompt,
@@ -362,7 +358,7 @@ if section == "🧠 Content Ideas":
                                     openai_key=st.secrets["openai"]["api_key"]
                                 )
                                 st.markdown("#### ✨ Suggested Caption")
-                                st.markdown(caption_result, unsafe_allow_html=True)
+                                st.code(caption_result, language="markdown")
                                 captions.append(caption_result)
 
                                 hashtag_result = generate_hashtags(
@@ -372,19 +368,19 @@ if section == "🧠 Content Ideas":
                                     platform=platform,
                                     openai_key=st.secrets["openai"]["api_key"]
                                 )
-                                st.markdown("#### 🔖 Hashtag Suggestions")
-                                st.markdown(f"<div style='font-size: 0.95rem; color: #374151;'>{hashtag_result}</div>", unsafe_allow_html=True)
+                                st.markdown("#### 🏷️ Hashtag Suggestions")
+                                st.markdown(hashtag_result)
                                 hashtags.append(hashtag_result)
 
                                 combined_results.append(f"✨ Caption:\n{caption_result}\n\n🔖 Hashtags:\n{hashtag_result}")
 
-                            # Save separately in context
+                            # Save in session for reuse
                             st.session_state["auri_context"]["captions"] = captions
                             st.session_state["auri_context"]["hashtags"] = hashtags
 
-                            # Save full result for this step
+                            # Save summary output
                             result = "\n\n---\n\n".join(combined_results)
-
+                            
                         elif "thumbnail" in title or "image" in title:
                             from modules.thumbnail import generate_thumbnail
                             result = generate_thumbnail(input_val or full_prompt)

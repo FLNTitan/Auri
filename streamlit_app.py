@@ -236,10 +236,12 @@ if section == "🧠 Content Ideas":
 
                             prev_step_key = f"step_{idx-1}"
                             prev_output = st.session_state["auri_context"]["step_outputs"].get(prev_step_key, "")
+                            user_instruction = step["user"]
                             result = generate_script(
                                 goal=full_prompt,
                                 user_input=input_val,
                                 previous_output=prev_output,
+                                user_instruction=user_instruction,
                                 platform=platform,
                                 tone=tone
                             )

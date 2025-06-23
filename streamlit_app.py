@@ -1,5 +1,6 @@
 import streamlit as st
 from ideation.generator import generate_ideas
+from modules.feedback import show_feedback_controls
 from openai import OpenAI
 import re
 
@@ -296,7 +297,62 @@ if section == "🧠 Content Ideas":
                 if step_key in st.session_state["executed_steps"]:
                     result = st.session_state["executed_steps"][step_key]
                     st.success("✅ Step completed.")
-                    st.caption(f"📝 Result: {result}")
+
+                    # Display result
+                    if "script" in step["title"].lower():
+                        st.code(result, language="markdown")
+                    elif "idea" in step["title"].lower():
+                        for idea in result.split("\n"):
+                            st.markdown(f"- {idea.strip()}")
+                    elif "caption" in step["title"].lower() or "hashtag" in step["title"].lower():
+                        st.markdown(result)
+                    elif "thumbnail" in step["title"].lower():
+                        st.image(result, caption="Generated Thumbnail")
+                    else:
+                        st.markdown(result)
+
+                    # Add regenerate + feedback controls
+                    def regenerate_wrapper(user_feedback):
+                        step_title = step["title"].lower()
+
+                        if "idea" in step_title:
+                            from ideation.generator import generate_ideas
+                            regenerated = generate_ideas(full_prompt, user_feedback)
+                            display = "\n".join(regenerated)
+                            for idea in regenerated:
+                                st.markdown(f"- {idea.strip()}")
+                            st.session_state["executed_steps"][step_key] = display
+                            st.session_state["auri_context"]["step_outputs"][step_key] = display
+
+                        elif "script" in step_title:
+                            from modules.script import generate_script
+                            tone = st.session_state.get(f"tone_{idx}", "Informative")
+                            platform = st.session_state.get(f"platform_{idx}", "TikTok")
+                            prev_step_key = f"step_{idx-1}"
+                            prev_output = st.session_state["auri_context"]["step_outputs"].get(prev_step_key, "")
+
+                            regenerated = generate_script(
+                                goal=full_prompt,
+                                user_input=input_val,
+                                previous_output=prev_output,
+                                user_instruction=user_feedback,
+                                platform=platform,
+                                tone=tone
+                            )
+                            st.code(regenerated)
+                            st.session_state["executed_steps"][step_key] = regenerated
+                            st.session_state["auri_context"]["step_outputs"][step_key] = regenerated
+
+                        # Add more step handlers as needed
+
+                    show_feedback_controls(
+                        step_key=step_key,
+                        step_title=step["title"],
+                        regenerate_callback=regenerate_wrapper,
+                        language=language,
+                        platform="Web"
+                    )
+
                 elif input_ready and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
                     with st.spinner("Running..."):
                         result = None
@@ -307,11 +363,11 @@ if section == "🧠 Content Ideas":
                             result = "\n".join(ideas)
                             for idea in ideas:
                                 st.markdown(idea)
+
                         elif "script" in title:
                             from modules.script import generate_script
                             tone = st.selectbox("🎭 Select a tone", ["Informative", "Funny", "Shocking"], key=f"tone_{idx}")
                             platform = st.selectbox("📱 Select platform", ["TikTok", "Instagram", "YouTube Shorts"], key=f"platform_{idx}")
-
                             prev_step_key = f"step_{idx-1}"
                             prev_output = st.session_state["auri_context"]["step_outputs"].get(prev_step_key, "")
                             user_instruction = step["user"]
@@ -324,6 +380,7 @@ if section == "🧠 Content Ideas":
                                 tone=tone
                             )
                             st.code(result, language="markdown")
+
                         elif "caption" in title or "hashtag" in title:
                             from modules.captions import generate_caption
                             from modules.hashtags import generate_hashtags
@@ -331,7 +388,6 @@ if section == "🧠 Content Ideas":
                             idea_list = st.session_state["auri_context"]["step_outputs"].get("step_1", [])
                             script_list = st.session_state["auri_context"]["step_outputs"].get("step_2", [])
 
-                            # Ensure they are lists
                             if isinstance(idea_list, str):
                                 idea_list = [line for line in idea_list.split("\n") if line.strip()]
                             if isinstance(script_list, str):
@@ -374,24 +430,24 @@ if section == "🧠 Content Ideas":
 
                                 combined_results.append(f"✨ Caption:\n{caption_result}\n\n🔖 Hashtags:\n{hashtag_result}")
 
-                            # Save in session for reuse
                             st.session_state["auri_context"]["captions"] = captions
                             st.session_state["auri_context"]["hashtags"] = hashtags
-
-                            # Save summary output
                             result = "\n\n---\n\n".join(combined_results)
-                            
+
                         elif "thumbnail" in title or "image" in title:
                             from modules.thumbnail import generate_thumbnail
                             result = generate_thumbnail(input_val or full_prompt)
                             st.image(result, caption="Generated Thumbnail")
+
                         elif "schedule" in title or "post" in title:
                             from modules.scheduler import schedule_post
                             result = schedule_post(input_val or full_prompt)
                             st.success(result)
+
                         elif "upload" in title:
                             result = f"📤 File received: {uploaded_file.name}" if uploaded_file else "No file uploaded"
                             st.success(result)
+
                         else:
                             result = "✅ Step complete — no handler yet."
                             st.info(result)
@@ -402,6 +458,7 @@ if section == "🧠 Content Ideas":
                         if idx < len(steps):
                             st.markdown("---")
                             st.info(f"👉 Ready to continue with **Step {idx+1}**: {steps[idx]['title']}?")
+
                         
             # Show suggestion prompt after all steps are displayed
             if st.session_state.get("auri_missing_suggestions"):

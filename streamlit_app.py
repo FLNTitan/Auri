@@ -410,7 +410,7 @@ if section == "🧠 Content Ideas":
                         st.session_state["executed_steps"][step_key] = result
                         st.session_state["auri_context"]["step_outputs"][step_key] = result
 
-                        st.experimental_rerun()
+                        st.rerun()
                         
             # Show suggestion prompt after all steps are displayed
             if st.session_state.get("auri_missing_suggestions"):

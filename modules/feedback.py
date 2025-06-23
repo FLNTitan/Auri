@@ -45,7 +45,7 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
             if st.button("👍 Yes", key=f"{step_key}_yes"):
                 st.session_state[feedback_state] = {"submitted": True, "response": "Yes"}
                 log_feedback(step_title, "Yes", "", language, platform)
-                st.success("✅ Thank you for your feedback!")
+                st.rerun()  # Immediately refresh to disable buttons
 
         with col2:
             if st.button("👎 No", key=f"{step_key}_no"):
@@ -56,9 +56,18 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
             if st.button("Submit", key=f"{step_key}_submit_no"):
                 st.session_state[feedback_state]["submitted"] = True
                 log_feedback(step_title, "No", comment, language, platform)
-                st.success("✅ Thank you for your feedback!")
+                st.rerun()
 
     elif submitted:
+        st.markdown("#### 🤔 Was this step helpful?")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.button("👍 Yes", key=f"{step_key}_yes_disabled", disabled=True)
+
+        with col2:
+            st.button("👎 No", key=f"{step_key}_no_disabled", disabled=True)
+
         st.success("✅ Thank you for your feedback!")
         st.markdown("✅ Step completed.")
         st.info("👉 Ready to move to the next step?")

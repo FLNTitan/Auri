@@ -21,7 +21,7 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
     if feedback_state not in st.session_state:
         st.session_state[feedback_state] = {"submitted": False, "response": None}
 
-    st.markdown("### 🔁 Regenerate or Give Feedback")
+    st.markdown("##### 🔁 Regenerate or Give Feedback")
 
     # --- Regenerate Section ---
     with st.expander("🔁 Regenerate this step"):
@@ -38,7 +38,7 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
     response = st.session_state[feedback_state]["response"]
 
     if not submitted:
-        st.markdown("#### 🤔 Was this step helpful?")
+        st.markdown("###### 🤔 Was this step helpful?")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -59,7 +59,7 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
                 st.rerun()
 
     elif submitted:
-        st.markdown("#### 🤔 Was this step helpful?")
+        st.markdown("###### 🤔 Was this step helpful?")
         col1, col2 = st.columns(2)
 
         with col1:

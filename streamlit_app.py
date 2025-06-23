@@ -296,8 +296,15 @@ if section == "🧠 Content Ideas":
 
                 if step_key in st.session_state["executed_steps"]:
                     result = st.session_state["executed_steps"][step_key]
-                    st.success("✅ Step completed.")
-
+                    
+                    # 👇 Use your feedback component here
+                    show_feedback_controls(
+                        step_key=step_key,
+                        step_title=step["title"],
+                        regenerate_callback=lambda user_feedback: st.warning("⚙️ Regeneration logic not implemented in this context."),
+                        language=language
+                    )
+                    
                 elif input_ready and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
                     with st.spinner("Running..."):
                         result = None

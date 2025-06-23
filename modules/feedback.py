@@ -34,7 +34,10 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
             regenerate_callback(user_feedback=feedback_note)
 
     # --- Feedback Section ---
-    if not st.session_state[feedback_state]["submitted"]:
+    submitted = st.session_state[feedback_state]["submitted"]
+    response = st.session_state[feedback_state]["response"]
+
+    if not submitted:
         st.markdown("#### 🤔 Was this step helpful?")
         col1, col2 = st.columns(2)
 
@@ -42,22 +45,20 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
             if st.button("👍 Yes", key=f"{step_key}_yes"):
                 st.session_state[feedback_state] = {"submitted": True, "response": "Yes"}
                 log_feedback(step_title, "Yes", "", language, platform)
+                st.success("✅ Thank you for your feedback!")
 
         with col2:
             if st.button("👎 No", key=f"{step_key}_no"):
                 st.session_state[feedback_state]["response"] = "No"
 
-        if st.session_state[feedback_state]["response"] == "No":
+        if response == "No":
             comment = st.text_area("💬 What went wrong?", key=f"{step_key}_no_comment")
             if st.button("Submit", key=f"{step_key}_submit_no"):
                 st.session_state[feedback_state]["submitted"] = True
                 log_feedback(step_title, "No", comment, language, platform)
                 st.success("✅ Thank you for your feedback!")
 
-    else:
+    elif submitted:
         st.success("✅ Thank you for your feedback!")
-
-    # --- Completion Prompt ---
-    if st.session_state[feedback_state]["submitted"]:
         st.markdown("✅ Step completed.")
         st.info("👉 Ready to move to the next step?")

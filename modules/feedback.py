@@ -69,5 +69,5 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
             st.button("👎 No", key=f"{step_key}_no_disabled", disabled=True)
 
         st.success("✅ Thank you for your feedback!")
-        st.markdown("✅ Step completed.")
+        st.success("✅ Step completed.")
         st.info("👉 Ready to move to the next step?")

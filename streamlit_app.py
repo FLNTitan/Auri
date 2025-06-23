@@ -290,69 +290,14 @@ if section == "🧠 Content Ideas":
                     input_val = st.text_area("✍️ (Optional) Enter any input Auri might need", key=f"text_{idx}")
                     input_ready = True
 
+                # Save step input and title
                 st.session_state["auri_context"]["step_inputs"][step_key] = input_val
                 st.session_state["auri_context"]["step_titles"][step_key] = step["title"]
 
-                # === Step already executed ===
                 if step_key in st.session_state["executed_steps"]:
                     result = st.session_state["executed_steps"][step_key]
                     st.success("✅ Step completed.")
 
-                    # Output handling
-                    if "script" in step["title"].lower():
-                        st.code(result, language="markdown")
-                    elif "idea" in step["title"].lower():
-                        for idea in result.split("\n"):
-                            st.markdown(f"- {idea.strip()}")
-                    elif "caption" in step["title"].lower() or "hashtag" in step["title"].lower():
-                        st.markdown(result)
-                    elif "thumbnail" in step["title"].lower():
-                        st.image(result, caption="Generated Thumbnail")
-                    else:
-                        st.markdown(result)
-
-                    # Feedback
-                    def regenerate_wrapper(user_feedback):
-                        step_title = step["title"].lower()
-                        if "idea" in step_title:
-                            from ideation.generator import generate_ideas
-                            regenerated = generate_ideas(full_prompt, user_feedback)
-                            display = "\n".join(regenerated)
-                            for idea in regenerated:
-                                st.markdown(f"- {idea.strip()}")
-                            st.session_state["executed_steps"][step_key] = display
-                            st.session_state["auri_context"]["step_outputs"][step_key] = display
-
-                        elif "script" in step_title:
-                            from modules.script import generate_script
-                            tone = st.session_state.get(f"tone_{idx}", "Informative")
-                            platform = st.session_state.get(f"platform_{idx}", "TikTok")
-                            prev_step_key = f"step_{idx-1}"
-                            prev_output = st.session_state["auri_context"]["step_outputs"].get(prev_step_key, "")
-                            regenerated = generate_script(
-                                goal=full_prompt,
-                                user_input=input_val,
-                                previous_output=prev_output,
-                                user_instruction=user_feedback,
-                                platform=platform,
-                                tone=tone
-                            )
-                            st.code(regenerated)
-                            st.session_state["executed_steps"][step_key] = regenerated
-                            st.session_state["auri_context"]["step_outputs"][step_key] = regenerated
-
-                        # Add more step types as needed...
-
-                    from modules.feedback import show_feedback_controls
-                    show_feedback_controls(
-                        step_key=step_key,
-                        step_title=step["title"],
-                        regenerate_callback=regenerate_wrapper,
-                        language=language,
-                        platform="Web"
-                    )
-
-                # === Step not yet executed ===
                 elif input_ready and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
                     with st.spinner("Running..."):
                         result = None
@@ -362,7 +307,7 @@ if section == "🧠 Content Ideas":
                             ideas = generate_ideas(full_prompt, input_val)
                             result = "\n".join(ideas)
                             for idea in ideas:
-                                st.markdown(f"- {idea.strip()}")
+                                st.markdown(idea)
 
                         elif "script" in title:
                             from modules.script import generate_script
@@ -384,30 +329,52 @@ if section == "🧠 Content Ideas":
                         elif "caption" in title or "hashtag" in title:
                             from modules.captions import generate_caption
                             from modules.hashtags import generate_hashtags
+
                             idea_list = st.session_state["auri_context"]["step_outputs"].get("step_1", [])
                             script_list = st.session_state["auri_context"]["step_outputs"].get("step_2", [])
+
                             if isinstance(idea_list, str):
                                 idea_list = [line for line in idea_list.split("\n") if line.strip()]
                             if isinstance(script_list, str):
                                 script_list = [line for line in script_list.split("\n") if line.strip()]
+
                             platform = st.selectbox("📱 Select platform", ["TikTok", "Instagram", "YouTube Shorts"], key=f"platform_caption_{idx}")
                             tone = st.selectbox("🎭 Select tone", ["Funny", "Inspiring", "Bold", "Shocking"], key=f"tone_caption_{idx}")
+
                             combined_results = []
                             captions = []
                             hashtags = []
+
                             for i, (idea, script) in enumerate(zip(idea_list, script_list), start=1):
                                 st.markdown(f"### 📝 Post {i}")
                                 cleaned_idea = idea.split(".", 1)[-1].strip()
                                 st.markdown(f"<div style='font-size: 1.05rem; color: #1F2937;'>{cleaned_idea}</div>", unsafe_allow_html=True)
-                                caption_result = generate_caption(goal=full_prompt, platform=platform, tone=tone, idea=idea, script=script, openai_key=st.secrets["openai"]["api_key"])
+
+                                caption_result = generate_caption(
+                                    goal=full_prompt,
+                                    platform=platform,
+                                    tone=tone,
+                                    idea=idea,
+                                    script=script,
+                                    openai_key=st.secrets["openai"]["api_key"]
+                                )
                                 st.markdown("#### ✨ Suggested Caption")
                                 st.code(caption_result, language="markdown")
                                 captions.append(caption_result)
-                                hashtag_result = generate_hashtags(goal=full_prompt, idea=idea, script=script, platform=platform, openai_key=st.secrets["openai"]["api_key"])
+
+                                hashtag_result = generate_hashtags(
+                                    goal=full_prompt,
+                                    idea=idea,
+                                    script=script,
+                                    platform=platform,
+                                    openai_key=st.secrets["openai"]["api_key"]
+                                )
                                 st.markdown("#### 🏷️ Hashtag Suggestions")
                                 st.markdown(hashtag_result)
                                 hashtags.append(hashtag_result)
+
                                 combined_results.append(f"✨ Caption:\n{caption_result}\n\n🔖 Hashtags:\n{hashtag_result}")
+
                             st.session_state["auri_context"]["captions"] = captions
                             st.session_state["auri_context"]["hashtags"] = hashtags
                             result = "\n\n---\n\n".join(combined_results)
@@ -432,7 +399,6 @@ if section == "🧠 Content Ideas":
 
                         st.session_state["executed_steps"][step_key] = result
                         st.session_state["auri_context"]["step_outputs"][step_key] = result
-
 
                         if idx < len(steps):
                             st.markdown("---")

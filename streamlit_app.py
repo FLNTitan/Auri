@@ -316,8 +316,9 @@ if section == "🧠 Content Ideas":
                         if "idea" in title:
                             ideas = generate_ideas(full_prompt, input_val)
                             result = "\n".join(ideas)
-                            for idea in ideas:
-                                st.markdown(idea)
+                            for i, idea in enumerate(ideas, 1):
+                                clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
+                                st.markdown(f"💡 **Idea {i}:** {clean_idea}")
 
                         elif "script" in title:
                             from modules.script import generate_script

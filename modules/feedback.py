@@ -56,11 +56,12 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
             if st.button("👍 Yes", key=f"{step_key}_yes"):
                 st.session_state[feedback_state] = {"submitted": True, "response": "Yes"}
                 log_feedback(step_title, "Yes", "", language, platform)
-                st.rerun()  # Immediately refresh to disable buttons
+                st.rerun()
 
         with col2:
             if st.button("👎 No", key=f"{step_key}_no"):
                 st.session_state[feedback_state]["response"] = "No"
+                st.rerun()
 
         if response == "No":
             comment = st.text_area("💬 What went wrong?", key=f"{step_key}_no_comment")

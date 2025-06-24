@@ -50,7 +50,7 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
 
     if not submitted:
         st.markdown("##### 🤔 Did Auri answer your needs in this step?")
-        col1, spacer, col2 = st.columns([2, 1, 2])
+        col1, spacer, col2 = st.columns([3, 0.1, 3])
 
         with col1:
             if st.button("👍 Yes", key=f"{step_key}_yes"):

@@ -1,19 +1,30 @@
 import streamlit as st
 from datetime import datetime
+from supabase import create_client
+import os
+
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def log_feedback(step_name, response, comment, language="English", platform="Web"):
     feedback = {
+        "timestamp": datetime.now().isoformat(),
         "step": step_name,
         "response": response,
         "comment": comment,
-        "timestamp": datetime.now().isoformat(),
         "language": language,
         "platform": platform,
+        "user_id": st.session_state.get("user_id", "anon"),
+        "workflow_goal": st.session_state.get("auri_context", {}).get("goal", ""),
+        "regenerated": st.session_state.get(f"{step_name}_regenerated", False)
     }
-    print("FEEDBACK LOGGED:", feedback)
+
     if "auri_feedback" not in st.session_state:
         st.session_state["auri_feedback"] = []
     st.session_state["auri_feedback"].append(feedback)
+
+    supabase.table("feedback").insert(feedback).execute()
 
 def show_feedback_controls(step_key, step_title, regenerate_callback, language="English", platform="Web"):
     feedback_state = f"{step_key}_feedback_state"
@@ -38,7 +49,7 @@ def show_feedback_controls(step_key, step_title, regenerate_callback, language="
     response = st.session_state[feedback_state]["response"]
 
     if not submitted:
-        st.markdown("##### 🤔 Was this step helpful?")
+        st.markdown("##### 🤔 Did Auri answer your needs in this step?")
         col1, col2 = st.columns(2)
 
         with col1:

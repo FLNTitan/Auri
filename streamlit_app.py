@@ -169,8 +169,10 @@ if section == "🧠 Content Ideas":
 
         The user's goal is: "{full_prompt}"
 
-        Break this goal into 3–6 steps required to complete it.
-
+        Your job is to break this goal into 3–6 steps required to complete it - starting from either:
+        1. Using existing content the user provided (like tweets, blogs, past posts etc ...), or
+        2. Generating new ideas from scratch if no input is provided or the goal requested does not require the user to share any media with you. Be flexible and match the user's prompt.
+        
         Each step must include:
         1. A clear step title (e.g. "Generate Ideas", "Script Writing", "Upload Media")
         2. Two subpoints:

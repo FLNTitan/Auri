@@ -315,7 +315,7 @@ if section == "🧠 Content Ideas":
                         result = None
                         title = step["title"].lower()
 
-                        if "idea" in title:
+                        if any(x in title.lower() for x in ["idea", "repurpose"]):
                             ideas = generate_ideas(full_prompt, input_val)
                             result = "\n".join(ideas)
                             for i, idea in enumerate(ideas, 1):

@@ -317,6 +317,8 @@ if section == "🧠 Content Ideas":
                         result = None
                         title = step["title"].lower()
 
+                        match_result = is_idea_or_repurpose_step(step["title"], step["auri"])
+                        st.write("🧠 Step Match Result:", match_result)
                         if is_idea_or_repurpose_step(step["title"], step["auri"]):
                             ideas = generate_ideas(full_prompt, input_val)
                             result = "\n".join(ideas)

@@ -4,6 +4,11 @@ import streamlit as st
 
 client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
+def is_idea_or_repurpose_step(title, auri_text):
+    keywords = ["idea", "repurpose", "reuse", "rework", "transform", "extract", "adapt", "based on", "use existing"]
+    combined = f"{title} {auri_text}".lower()
+    return any(kw in combined for kw in keywords)
+
 def generate_ideas(full_prompt: str, user_input: str = None, count: int = 3):
     client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 

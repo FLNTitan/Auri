@@ -1,5 +1,5 @@
 import streamlit as st
-from ideation.generator import generate_ideas
+from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from openai import OpenAI
 import re
@@ -317,7 +317,7 @@ if section == "🧠 Content Ideas":
                         result = None
                         title = step["title"].lower()
 
-                        if any(x in title.lower() for x in ["idea", "repurpose"]):
+                        if "idea" in title or is_idea_or_repurpose_step(step['title'], step['auri']):
                             ideas = generate_ideas(full_prompt, input_val)
                             result = "\n".join(ideas)
                             for i, idea in enumerate(ideas, 1):

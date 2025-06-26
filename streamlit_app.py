@@ -171,10 +171,14 @@ if section == "🧠 Content Ideas":
         
         Start by determining if the user is trying to repurpose existing content (e.g. tweets, blogs, captions, videos), or create something from scratch.
 
-        Once you have determined if the user is trying to repurpose existing content or create new ideas - break this goal into 3–6 steps required to complete it - starting from either:
-        1. Using existing content the user provided (like tweets, blogs, past posts etc ...), or
+        Once you have determined if the user is trying to repurpose existing content or generate new ideas:
+        - Do **not** include vague or redundant steps like “Content Review” or “Reels Concept.”
+        - Start directly from either:
+        1. Repurposing the user’s content (like tweets, blogs, past posts etc ...) into ideas, or
         2. Generating new ideas from scratch if no input is provided or the goal requested does not require the user to share any media with you. Be flexible and match the user's prompt.
         
+        - ❌ Do not include generic, vague steps like “Develop Concept” or “Review Content” unless they serve a clear function and require user input.
+
         Each step must include:
         1. A clear step title (e.g. "Generate Ideas", "Script Writing", "Upload Media")
         2. Two subpoints:

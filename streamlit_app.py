@@ -178,6 +178,9 @@ if section == "🧠 Content Ideas":
         2. Generating new ideas from scratch if no input is provided or the goal requested does not require the user to share any media with you. Be flexible and match the user's prompt.
         
         - ❌ Do not include generic, vague steps like “Develop Concept” or “Review Content” unless they serve a clear function and require user input.
+        - Be aware of what is the logical order to execute the steps and suggest them in order (e.g. do not include a "Generate Ideas" step after "Scripting" step)
+        - If the user is repurposing content (e.g. tweets), you must not suggest generating new ideas afterward.
+
 
         Each step must include:
         1. A clear step title (e.g. "Generate Ideas", "Script Writing", "Upload Media")

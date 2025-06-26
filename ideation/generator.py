@@ -6,8 +6,9 @@ client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 def is_idea_or_repurpose_step(title: str, auri_text: str) -> bool:
     keywords = [
-        "idea", "repurpose", "reuse", "rework", "transform", "extract",
-        "adapt", "use", "based on", "turn", "convert", "leverage", "past content", "existing"
+        "idea", "repurpose", "reuse", "rework", "transform", "extract", "analyze",
+        "adapt", "use", "based on", "turn", "convert", "leverage", "past content",
+        "existing", "tweet", "caption", "blog", "review", "analyz", "content"
     ]
     combined_text = f"{title} {auri_text}".lower()
     return any(kw in combined_text for kw in keywords)

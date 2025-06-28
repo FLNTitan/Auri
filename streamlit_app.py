@@ -5,6 +5,7 @@ from modules.script import generate_script_step_instruction
 from modules.video import detect_video_ideas
 from openai import OpenAI
 import re
+from PIL import Image
 
 TEXT = {
     "English": {
@@ -463,10 +464,108 @@ if section == "🧠 Content Ideas":
                     for item in suggestions:
                         st.markdown(f"- ✅ **{item}** – available in upcoming versions or can be triggered manually.")
 
-
 elif section == "🎨 Editing Studio":
     st.markdown("## 🎨 Editing Studio")
-    st.info("Auri's content editor is coming soon.")
+
+    st.markdown("### 🖼️ Thumbnail Generator")
+
+    # ----------------------------
+    # 1️⃣ Retrieve previous outputs
+    # ----------------------------
+    step_outputs = st.session_state.get("auri_context", {}).get("step_outputs", {})
+    default_title = (
+        step_outputs.get("step_2", "").split("\n")[0]
+        if step_outputs.get("step_2")
+        else "Your Title Here"
+    )
+    default_subtitle = step_outputs.get("step_3", "") or ""
+
+    platform = st.selectbox("📱 Select platform", ["YouTube", "TikTok", "Instagram", "LinkedIn"])
+    style = st.selectbox(
+        "🎨 Select style",
+        ["Clean & Modern", "Bold & Dynamic", "Playful & Fun", "Minimalist & Elegant"]
+    )
+    custom_style = st.text_input(
+        "✏️ (Optional) Describe any custom style instructions",
+        placeholder="e.g. Add neon glow, use purple background"
+    )
+
+    # ----------------------------
+    # 2️⃣ User Inputs
+    # ----------------------------
+    title = st.text_input("Thumbnail Title", value=default_title)
+    subtitle = st.text_input("Thumbnail Subtitle", value=default_subtitle)
+
+    uploaded_file = st.file_uploader("📤 Upload an image to use as a base")
+
+    generate_ai = st.button("🎨 Generate AI Image")
+
+    # Prepare variable to hold the base image path
+    base_image_path = None
+
+    # ----------------------------
+    # 3️⃣ Handle AI Generation
+    # ----------------------------
+    if generate_ai:
+        with st.spinner("Generating AI Image..."):
+            from modules.thumbnail import generate_thumbnail_prompt, download_image
+
+            script_text = step_outputs.get("step_2", "")
+            hashtags = step_outputs.get("step_3", "")
+
+            prompt = generate_thumbnail_prompt(
+                script_text,
+                hashtags,
+                platform,
+                style,
+                custom_style
+            )
+
+            client = OpenAI(api_key=st.secrets["openai"]["api_key"])
+
+            response = client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                n=1,
+                size="1024x1024"
+            )
+            image_url = response.data[0].url
+            st.image(image_url, caption="AI Generated Thumbnail")
+            download_image(image_url, "ai_thumbnail.jpg")
+            base_image_path = "ai_thumbnail.jpg"
+
+    # ----------------------------
+    # 4️⃣ Final Thumbnail Creation
+    # ----------------------------
+    if st.button("✅ Generate Final Thumbnail"):
+        from modules.thumbnail_config import THUMBNAIL_STYLES
+        from modules.thumbnail import create_thumbnail
+
+        if uploaded_file:
+            image = Image.open(uploaded_file)
+            image.save("uploaded_image.jpg")
+            base_image_path = "uploaded_image.jpg"
+
+        if not base_image_path:
+            st.error("Please upload an image or generate one first.")
+        else:
+            output_path = create_thumbnail(
+                base_image_path,
+                title,
+                subtitle,
+                config=THUMBNAIL_STYLES["default"],
+                output_path="final_thumbnail.jpg"
+            )
+            st.image(output_path, caption="Your Thumbnail is Ready!")
+
+            # Store metadata
+            st.session_state["auri_context"]["step_outputs"]["thumbnail"] = {
+                "source": "uploaded" if uploaded_file else "AI",
+                "title": title,
+                "subtitle": subtitle,
+                "script_used": script_text,
+                "hashtags_used": hashtags
+            }
 elif section == "🗖️ Posting & Scheduling":
     st.markdown("## 🗖️ Posting & Scheduling")
     st.info("Plan and schedule your content visually.")

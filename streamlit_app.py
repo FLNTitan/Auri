@@ -543,6 +543,10 @@ elif section == "🎨 Editing Studio":
 
         if uploaded_file:
             image = Image.open(uploaded_file)
+            # Convert RGBA to RGB if needed
+            if image.mode == "RGBA":
+                image = image.convert("RGB")    
+
             image.save("uploaded_image.jpg")
             base_image_path = "uploaded_image.jpg"
 

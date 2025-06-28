@@ -17,7 +17,9 @@ def create_thumbnail(base_image_path, title, subtitle="", config=None, output_pa
     text = title
     if subtitle:
         text += "\n" + subtitle
-    text_width, text_height = draw.multiline_textsize(text, font=font)
+    bbox = draw.multiline_textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
 
     # Determine position
     if config["text_position"] == "bottom":

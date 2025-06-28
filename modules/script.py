@@ -1,6 +1,8 @@
+from openai import OpenAI
+import streamlit as st
+import re
+
 def generate_script(goal, user_input=None, previous_output=None, user_instruction=None, platform="TikTok", tone="Informative"):
-    from openai import OpenAI
-    import streamlit as st
 
     client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
@@ -66,3 +68,35 @@ def generate_script(goal, user_input=None, previous_output=None, user_instructio
     )
 
     return response.choices[0].message.content.strip()
+
+
+def generate_script_step_instruction(client, idea_text, platform="Instagram", tone="Informative"):
+    micro_prompt = f"""
+        You are Auri. The user gave you this idea to develop into a video script:
+        "{idea_text}"
+
+        Generate a single step for "Script Writing" in the same format as other steps, including:
+        1. A short and clear step title.
+        2. "I will..." – What Auri will do to write the script.
+        3. "To do that, I’ll need you to..." – A specific and polite request to the user, e.g. platform/tone input.
+
+        Use this strict format:
+        Script Writing | I will... | To do that, I’ll need you to...
+
+        Only generate that one line. Keep it clean and clear.
+        """
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": micro_prompt}],
+        temperature=0.3,
+    )
+    line = response.choices[0].message.content.strip()
+    match = re.match(r"^\s*Script Writing\s+\|\s+(I will.*?)\s+\|\s+(To do that.*?)$", line)
+    if match:
+        return {
+            "title": "Script Writing",
+            "auri": match.group(1).strip(),
+            "user": match.group(2).strip()
+        }
+    return None

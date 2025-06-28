@@ -1,6 +1,8 @@
 import streamlit as st
 from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
+from modules.script import generate_script_step_instruction
+from modules.video import detect_video_ideas
 from openai import OpenAI
 import re
 
@@ -236,6 +238,16 @@ if section == "🧠 Content Ideas":
         No introductions. No summaries.
         """
 
+        # Check if Step 1 output includes video ideas
+        prev_step_outputs = st.session_state["auri_context"].get("step_outputs", {})
+        step_1_output = prev_step_outputs.get("step_1", "")
+
+        if isinstance(step_1_output, str):
+            step_1_lines = [line.strip() for line in step_1_output.split("\n") if line.strip()]
+        else:
+            step_1_lines = step_1_output
+
+        should_force_script = detect_video_ideas(step_1_lines)
 
         if "auri_steps" not in st.session_state:
             response = client.chat.completions.create(
@@ -253,6 +265,15 @@ if section == "🧠 Content Ideas":
                         "auri": match.group(2).strip(),
                         "user": match.group(3).strip()
                     })
+            # --- Auto-insert Script Writing step if needed ---
+            step_titles = [s["title"].lower() for s in parsed_steps]
+            if should_force_script and not any("script" in title for title in step_titles):
+                # Pick a video idea to describe in the prompt:
+                idea_output = st.session_state["auri_context"]["step_outputs"].get("step_1", "")
+                video_idea = next((line for line in idea_output.split("\n") if any(x in line.lower() for x in ["reel", "short", "video"])), "")
+                dynamic_script_step = generate_script_step_instruction(client, idea_text=video_idea)
+                if dynamic_script_step:
+                    parsed_steps.insert(1, dynamic_script_step)
             st.session_state["auri_steps"] = parsed_steps
 
             # Track which capabilities were included

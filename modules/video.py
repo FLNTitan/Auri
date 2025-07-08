@@ -4,6 +4,18 @@ def detect_video_ideas(ideas: list[str]) -> bool:
     video_keywords = ["reel", "short", "tiktok", "voiceover", "video", "skit", "b-roll"]
     return any(any(kw in idea.lower() for kw in video_keywords) for idea in ideas)
 
+def determine_workflow(parsed_script: dict) -> dict:
+    scenes = parsed_script.get("scenes", [])
+    needs_video = len(scenes) > 0
+    needs_voiceover = needs_video
+    needs_thumbnail = needs_video
+
+    return {
+        "needs_video": needs_video,
+        "needs_voiceover": needs_voiceover,
+        "needs_thumbnail": needs_thumbnail
+    }
+
 def analyze_script(script_text: str) -> dict:
     lines = script_text.splitlines()
     

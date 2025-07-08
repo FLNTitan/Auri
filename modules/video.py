@@ -32,61 +32,82 @@ def analyze_script(script_text: str) -> dict:
     }
     
     current_scene = None
-    
+
+    # Compile regexes for re-use
+    time_range_re = re.compile(r'(\d+s)[–-](\d+s)')
+    camera_re = re.compile(r'🎥\s*(.*)', re.IGNORECASE)
+    lighting_re = re.compile(r'💡\s*(.*)', re.IGNORECASE)
+    music_re = re.compile(r'🎶\s*(.*)', re.IGNORECASE)
+    transition_re = re.compile(r'🔄\s*(.*)', re.IGNORECASE)
+    onscreen_re = re.compile(r'🖼\s*(.*)', re.IGNORECASE)
+
     for line in lines:
         line = line.strip()
         if not line:
             continue
         
-        # Header
-        if line.startswith("🎬 Title:"):
-            result["title"] = line.split("🎬 Title:")[1].strip()
-        elif line.startswith("🎯 Goal:"):
-            result["goal"] = line.split("🎯 Goal:")[1].strip()
+        # Headers
+        if line.startswith("🎬 Title"):
+            result["title"] = line.split("🎬 Title")[-1].strip(": ").strip()
+        elif line.startswith("🎯 Goal"):
+            result["goal"] = line.split("🎯 Goal")[-1].strip(": ").strip()
         elif line.startswith("🎤 Delivery Notes"):
-            result["delivery_notes"] = line.replace("🎤 Delivery Notes","").strip()
+            result["delivery_notes"] = line.split("🎤 Delivery Notes")[-1].strip(": ").strip()
         elif line.startswith("🛠 Recommended Equipment"):
-            result["equipment"] = line.replace("🛠 Recommended Equipment","").strip()
+            result["equipment"] = line.split("🛠 Recommended Equipment")[-1].strip(": ").strip()
         elif line.startswith("⏱ Total Estimated Duration"):
-            result["duration"] = line.replace("⏱ Total Estimated Duration","").strip()
+            result["duration"] = line.split("⏱ Total Estimated Duration")[-1].strip(": ").strip()
         
-        # Scene start
-        scene_match = re.match(r'^(\d+s–\d+s):\s*"(.*?)"', line)
-        if scene_match:
+        # Check for scene start
+        match = time_range_re.search(line)
+        if match:
+            # Save previous scene
             if current_scene:
                 result["scenes"].append(current_scene)
-            start_end = scene_match.group(1)
-            text = scene_match.group(2)
-            start, end = start_end.split("–")
+            
             current_scene = {
-                "start": start.strip(),
-                "end": end.strip(),
-                "text": text,
+                "start": match.group(1),
+                "end": match.group(2),
+                "text": "",
                 "camera": "",
                 "lighting": "",
                 "music": "",
                 "transition": "",
                 "onscreen_text": ""
             }
+            # Try to extract text after time range
+            parts = line.split(match.group(0))
+            if len(parts) > 1:
+                current_scene["text"] = parts[1].strip("–—: ").strip("✅").strip()
             continue
         
-        # Attributes
+        # Scene attributes
         if current_scene:
-            if line.startswith("🎥 Camera direction:"):
-                current_scene["camera"] = line.split("🎥 Camera direction:")[1].strip()
-            elif line.startswith("💡 Lighting suggestion:"):
-                current_scene["lighting"] = line.split("💡 Lighting suggestion:")[1].strip()
-            elif line.startswith("🎶 Music style suggestion:"):
-                current_scene["music"] = line.split("🎶 Music style suggestion:")[1].strip()
-            elif line.startswith("🔄 Transition:"):
-                current_scene["transition"] = line.split("🔄 Transition:")[1].strip()
-            elif line.startswith("🖼 On-screen text:"):
-                current_scene["onscreen_text"] = line.split("🖼 On-screen text:")[1].strip()
-    
-    # Append the last scene
+            cam = camera_re.search(line)
+            if cam:
+                current_scene["camera"] = cam.group(1).strip()
+                continue
+            lig = lighting_re.search(line)
+            if lig:
+                current_scene["lighting"] = lig.group(1).strip()
+                continue
+            mus = music_re.search(line)
+            if mus:
+                current_scene["music"] = mus.group(1).strip()
+                continue
+            tra = transition_re.search(line)
+            if tra:
+                current_scene["transition"] = tra.group(1).strip()
+                continue
+            ons = onscreen_re.search(line)
+            if ons:
+                current_scene["onscreen_text"] = ons.group(1).strip()
+                continue
+
+    # Append last scene
     if current_scene:
         result["scenes"].append(current_scene)
-    
+
     return result
 
 

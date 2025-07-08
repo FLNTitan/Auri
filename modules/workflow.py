@@ -23,12 +23,23 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
     elif "script" in title:
         from modules.script import generate_script
-        tone = st.selectbox("🎭 Select a tone", ["Informative", "Funny", "Shocking"], key=f"tone_{idx}")
-        platform = st.selectbox("📱 Select platform", ["TikTok", "Instagram", "YouTube Shorts"], key=f"platform_{idx}")
+        from modules.video import analyze_script, plan_footage
+
+        tone = st.selectbox(
+            "🎭 Select a tone",
+            ["Informative", "Funny", "Shocking"],
+            key=f"tone_{idx}"
+        )
+        platform = st.selectbox(
+            "📱 Select platform",
+            ["TikTok", "Instagram", "YouTube Shorts"],
+            key=f"platform_{idx}"
+        )
         prev_step_key = f"step_{idx-1}"
         prev_output = st.session_state["auri_context"]["step_outputs"].get(prev_step_key, "")
         user_instruction = step["user"]
 
+        # Generate script text
         result = generate_script(
             goal=full_prompt,
             user_input=input_val,
@@ -38,12 +49,31 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             tone=tone
         )
 
-        # ✅ Always save before rerun
+        # ✅ Save script output so it's always visible
         st.session_state["executed_steps"][step_key] = result
         st.session_state["auri_context"]["step_outputs"][step_key] = result
 
-        workflow = determine_workflow(result)
+        # Analyze script into structured scene data
+        parsed_script = analyze_script(result)
+        st.session_state["auri_context"]["parsed_script"] = parsed_script
 
+        # Plan footage based on scenes
+        planned_footage = plan_footage(parsed_script.get("scenes", []))
+        st.session_state["auri_context"]["planned_footage"] = planned_footage
+
+        # Detect workflow needs
+        workflow = determine_workflow(result)
+        st.session_state["auri_context"]["video_workflow"] = workflow
+
+        # ✅ Show everything for debug
+        st.code(result, language="markdown")
+        st.subheader("🎬 Parsed Script Scenes")
+        st.json(parsed_script)
+        st.subheader("📹 Planned Footage")
+        st.json(planned_footage)
+        st.write("DEBUG workflow:", workflow)
+
+        # Insert video steps if needed
         if workflow["needs_video"]:
             video_steps = [
                 {
@@ -69,14 +99,12 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 + video_steps
                 + st.session_state["auri_steps"][insertion_index:]
             )
-            st.session_state["auri_context"]["video_workflow"] = workflow
 
+            # ✅ Rerun to show new steps
             st.rerun()
 
-        # ✅ If no rerun, display result
-        st.code(result, language="markdown")
-        st.write("DEBUG workflow:", workflow)
-        return
+            return
+
 
     elif "caption" in title or "hashtag" in title:
         from modules.captions import generate_caption

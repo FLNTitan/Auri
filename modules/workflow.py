@@ -71,7 +71,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             )
             st.session_state["auri_context"]["video_workflow"] = workflow
 
-            st.experimental_rerun()
+            st.rerun()
 
         # ✅ If no rerun, display result
         st.code(result, language="markdown")

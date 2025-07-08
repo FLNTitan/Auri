@@ -5,8 +5,7 @@ def detect_video_ideas(ideas: list[str]) -> bool:
     return any(any(kw in idea.lower() for kw in video_keywords) for idea in ideas)
 
 def script_contains_time_ranges(script_text: str) -> bool:
-    return bool(re.search(r'\d+s–\d+s:', script_text))
-
+    return bool(re.search(r'\d+s\s*–\s*\d+s', script_text))
 
 def determine_workflow(script_text: str) -> dict:
     needs_video = script_contains_time_ranges(script_text)

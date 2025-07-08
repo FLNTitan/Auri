@@ -2,7 +2,7 @@ import streamlit as st
 from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
-from modules.video import detect_video_ideas
+from modules.video import detect_video_ideas, analyze_script, determine_workflow
 from openai import OpenAI
 import re
 from PIL import Image
@@ -369,7 +369,37 @@ if section == "🧠 Content Ideas":
                                 tone=tone
                             )
                             st.code(result, language="markdown")
-
+                            parsed_script = analyze_script(result)
+                            workflow = determine_workflow(parsed_script)
+                            
+                            if workflow["needs_video"]:
+                                # Dynamically append video-related steps
+                                video_steps = [
+                                    {
+                                        "title": "Plan Footage",
+                                        "auri": "I will analyze your script scenes and help you decide whether to upload footage or auto-generate visuals.",
+                                        "user": "Upload any video clips you'd like to use, or skip to auto-generate."
+                                    },
+                                    {
+                                        "title": "Generate Voiceover",
+                                        "auri": "I will create a voiceover narration for your video scenes.",
+                                        "user": "Optionally upload a sample of your voice (WAV/MP3) or confirm using AI voice."
+                                    },
+                                    {
+                                        "title": "Assemble Video",
+                                        "auri": "I will combine your footage, voiceover, and on-screen text into a complete video.",
+                                        "user": "Review the final video and confirm if you'd like any edits."
+                                    }
+                                ]
+                            
+                                # Insert video steps immediately after the script step
+                                insertion_index = idx  # right after current step
+                                st.session_state["auri_steps"] = (
+                                    st.session_state["auri_steps"][:insertion_index]
+                                    + video_steps
+                                    + st.session_state["auri_steps"][insertion_index:]
+                                )
+                                st.session_state["auri_context"]["video_workflow"] = workflow
                         elif "caption" in title or "hashtag" in title:
                             from modules.captions import generate_caption
                             from modules.hashtags import generate_hashtags

@@ -1,5 +1,15 @@
 import re
 
+
+def clean_label(text, prefix):
+    """Remove a prefix label and extra quotes/spaces."""
+    return re.sub(
+        rf"^{re.escape(prefix)}\s*",
+        "",
+        text,
+        flags=re.I
+    ).strip().strip('"')
+
 def detect_video_ideas(ideas: list[str]) -> bool:
     video_keywords = ["reel", "short", "tiktok", "voiceover", "video", "skit", "b-roll"]
     return any(any(kw in idea.lower() for kw in video_keywords) for idea in ideas)
@@ -47,17 +57,17 @@ def analyze_script(script_text: str) -> dict:
             continue
         
         # Headers
-        if line.startswith("🎬 Title"):
-            result["title"] = line.split("🎬 Title")[-1].strip(": ").strip()
-        elif line.startswith("🎯 Goal"):
-            result["goal"] = line.split("🎯 Goal")[-1].strip(": ").strip()
-        elif line.startswith("🎤 Delivery Notes"):
-            result["delivery_notes"] = line.split("🎤 Delivery Notes")[-1].strip(": ").strip()
-        elif line.startswith("🛠 Recommended Equipment"):
-            result["equipment"] = line.split("🛠 Recommended Equipment")[-1].strip(": ").strip()
-        elif line.startswith("⏱ Total Estimated Duration"):
-            result["duration"] = line.split("⏱ Total Estimated Duration")[-1].strip(": ").strip()
-        
+        if line.startswith("🎥 Camera direction:"):
+            current_scene["camera"] = clean_label(line, "🎥 Camera direction:")
+        elif line.startswith("💡 Lighting suggestion:"):
+            current_scene["lighting"] = clean_label(line, "💡 Lighting suggestion:")
+        elif line.startswith("🎶 Music style suggestion:"):
+            current_scene["music"] = clean_label(line, "🎶 Music style suggestion:")
+        elif line.startswith("🔄 Transition:"):
+            current_scene["transition"] = clean_label(line, "🔄 Transition:")
+        elif line.startswith("🖼 On-screen text:"):
+            current_scene["onscreen_text"] = clean_label(line, "🖼 On-screen text:")
+
         # Check for scene start
         match = time_range_re.search(line)
         if match:

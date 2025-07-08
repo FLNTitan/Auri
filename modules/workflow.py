@@ -1,7 +1,7 @@
 from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
-from modules.video import detect_video_ideas, analyze_script, determine_workflow
+from modules.video import detect_video_ideas, analyze_script, determine_workflow, clean_label
 import re
 import streamlit as st
 
@@ -55,10 +55,29 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
         # Analyze script into structured scene data
         parsed_script = analyze_script(result)
+        
+        for scene in parsed_script.get("scenes", []):
+            if scene["camera"]:
+                scene["camera"] = re.sub(r"^Camera direction:\s*", "", scene["camera"], flags=re.I).strip('" ')
+            if scene["lighting"]:
+                scene["lighting"] = re.sub(r"^Lighting suggestion:\s*", "", scene["lighting"], flags=re.I).strip('" ')
+            if scene["music"]:
+                scene["music"] = re.sub(r"^Music style suggestion:\s*", "", scene["music"], flags=re.I).strip('" ')
+            if scene["transition"]:
+                scene["transition"] = re.sub(r"^Transition:\s*", "", scene["transition"], flags=re.I).strip('" ')
+            if scene["onscreen_text"]:
+                scene["onscreen_text"] = re.sub(r"^On-screen text:\s*", "", scene["onscreen_text"], flags=re.I).strip('" ')
+
         st.session_state["auri_context"]["parsed_script"] = parsed_script
 
         # Plan footage based on scenes
         planned_footage = plan_footage(parsed_script.get("scenes", []))
+
+        # Clean visuals
+        for item in planned_footage:
+            if item["visual"]:
+                item["visual"] = clean_label(item["visual"], "Camera direction:")
+
         st.session_state["auri_context"]["planned_footage"] = planned_footage
 
         # Detect workflow needs

@@ -3,6 +3,7 @@ from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
 from modules.video import detect_video_ideas, analyze_script, determine_workflow
+from modules.workflow import handle_step_execution
 from openai import OpenAI
 import re
 from PIL import Image

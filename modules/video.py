@@ -73,3 +73,22 @@ def analyze_script(script_text: str) -> dict:
         result["scenes"].append(current_scene)
     
     return result
+
+
+def plan_footage(scenes: list) -> list:
+    planned = []
+    for idx, scene in enumerate(scenes):
+        visual = scene.get("camera", "")
+        requires_user_upload = False
+        
+        # Simple heuristic (you can improve this)
+        if any(keyword in visual.lower() for keyword in ["your", "personal", "custom"]):
+            requires_user_upload = True
+        
+        planned.append({
+            "scene_index": idx,
+            "visual": visual,
+            "requires_user_upload": requires_user_upload,
+            "suggested_source": "stock" if not requires_user_upload else "user_upload"
+        })
+    return planned

@@ -402,6 +402,7 @@ if section == "🧠 Content Ideas":
                                     + st.session_state["auri_steps"][insertion_index:]
                                 )
                                 st.session_state["auri_context"]["video_workflow"] = workflow
+                                st.experimental_rerun()
                         elif "caption" in title or "hashtag" in title:
                             from modules.captions import generate_caption
                             from modules.hashtags import generate_hashtags

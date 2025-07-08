@@ -370,7 +370,9 @@ if section == "🧠 Content Ideas":
                             )
                             st.code(result, language="markdown")
                             parsed_script = analyze_script(result)
+                            st.write("DEBUG parsed_script:", parsed_script)
                             workflow = determine_workflow(parsed_script)
+                            st.write("DEBUG workflow:", workflow)
                             
                             if workflow["needs_video"]:
                                 # Dynamically append video-related steps

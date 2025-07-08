@@ -4,9 +4,12 @@ def detect_video_ideas(ideas: list[str]) -> bool:
     video_keywords = ["reel", "short", "tiktok", "voiceover", "video", "skit", "b-roll"]
     return any(any(kw in idea.lower() for kw in video_keywords) for idea in ideas)
 
-def determine_workflow(parsed_script: dict) -> dict:
-    scenes = parsed_script.get("scenes", [])
-    needs_video = len(scenes) > 0
+def script_contains_time_ranges(script_text: str) -> bool:
+    return bool(re.search(r'\d+s–\d+s:', script_text))
+
+
+def determine_workflow(script_text: str) -> dict:
+    needs_video = script_contains_time_ranges(script_text)
     needs_voiceover = needs_video
     needs_thumbnail = needs_video
 
@@ -15,6 +18,7 @@ def determine_workflow(parsed_script: dict) -> dict:
         "needs_voiceover": needs_voiceover,
         "needs_thumbnail": needs_thumbnail
     }
+
 
 def analyze_script(script_text: str) -> dict:
     lines = script_text.splitlines()

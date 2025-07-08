@@ -3,6 +3,7 @@ from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
 from modules.video import detect_video_ideas, analyze_script, determine_workflow
 import re
+import streamlit as st
 
 def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
     step_key = f"step_{idx}"

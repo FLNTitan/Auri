@@ -12,6 +12,10 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
     if idx == 1 and is_idea_or_repurpose_step(step["title"], step["auri"]):
         ideas = generate_ideas(full_prompt, input_val)
         result = "\n".join(ideas)
+        # ✅ Save the result so it re-renders on rerun
+        st.session_state["executed_steps"][step_key] = result
+        st.session_state["auri_context"]["step_outputs"][step_key] = result
+
         for i, idea in enumerate(ideas, 1):
             clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
             st.markdown(f"💡 **Idea {i}:** {clean_idea}")
@@ -24,6 +28,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         prev_step_key = f"step_{idx-1}"
         prev_output = st.session_state["auri_context"]["step_outputs"].get(prev_step_key, "")
         user_instruction = step["user"]
+
         result = generate_script(
             goal=full_prompt,
             user_input=input_val,
@@ -32,14 +37,14 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             platform=platform,
             tone=tone
         )
-        st.code(result, language="markdown")
+
+        # ✅ Always save before rerun
+        st.session_state["executed_steps"][step_key] = result
+        st.session_state["auri_context"]["step_outputs"][step_key] = result
+
         workflow = determine_workflow(result)
-        st.write("DEBUG workflow:", workflow)
-        parsed_script = analyze_script(result)
-        st.write("DEBUG parsed_script:", parsed_script)
-        
+
         if workflow["needs_video"]:
-            # Dynamically append video-related steps
             video_steps = [
                 {
                     "title": "Plan Footage",
@@ -57,18 +62,22 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                     "user": "Review the final video and confirm if you'd like any edits."
                 }
             ]
-        
-            # Insert video steps immediately after the script step
-            insertion_index = idx  # right after current step
+
+            insertion_index = idx
             st.session_state["auri_steps"] = (
                 st.session_state["auri_steps"][:insertion_index]
                 + video_steps
                 + st.session_state["auri_steps"][insertion_index:]
             )
             st.session_state["auri_context"]["video_workflow"] = workflow
+
             st.experimental_rerun()
-            return
-        
+
+        # ✅ If no rerun, display result
+        st.code(result, language="markdown")
+        st.write("DEBUG workflow:", workflow)
+        return
+
     elif "caption" in title or "hashtag" in title:
         from modules.captions import generate_caption
         from modules.hashtags import generate_hashtags
@@ -118,34 +127,48 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
             combined_results.append(f"✨ Caption:\n{caption_result}\n\n🔖 Hashtags:\n{hashtag_result}")
 
-        st.session_state["auri_context"]["captions"] = captions
-        st.session_state["auri_context"]["hashtags"] = hashtags
         result = "\n\n---\n\n".join(combined_results)
+
+        # ✅ Save
+        st.session_state["executed_steps"][step_key] = result
+        st.session_state["auri_context"]["step_outputs"][step_key] = result
+
         return
 
     elif "thumbnail" in title or "image" in title:
         from modules.thumbnail import generate_thumbnail
         result = generate_thumbnail(input_val or full_prompt)
         st.image(result, caption="Generated Thumbnail")
+
+        # ✅ Save
+        st.session_state["executed_steps"][step_key] = "Thumbnail generated."
+        st.session_state["auri_context"]["step_outputs"][step_key] = "Thumbnail generated."
         return
 
     elif "schedule" in title or "post" in title:
         from modules.scheduler import schedule_post
         result = schedule_post(input_val or full_prompt)
         st.success(result)
+
+        # ✅ Save
+        st.session_state["executed_steps"][step_key] = result
+        st.session_state["auri_context"]["step_outputs"][step_key] = result
         return
 
     elif "upload" in title:
         result = f"📤 File received: {uploaded_file.name}" if uploaded_file else "No file uploaded"
         st.success(result)
+
+        # ✅ Save
+        st.session_state["executed_steps"][step_key] = result
+        st.session_state["auri_context"]["step_outputs"][step_key] = result
         return
 
     else:
         result = "✅ Step complete — no handler yet."
         st.info(result)
+
+        # ✅ Save
+        st.session_state["executed_steps"][step_key] = result
+        st.session_state["auri_context"]["step_outputs"][step_key] = result
         return
-
-    st.session_state["executed_steps"][step_key] = result
-    st.session_state["auri_context"]["step_outputs"][step_key] = result
-
-    return

@@ -369,7 +369,7 @@ if section == "🧠 Content Ideas":
                                 tone=tone
                             )
                             st.code(result, language="markdown")
-                            workflow = determine_workflow(parsed_script)
+                            workflow = determine_workflow(result)
                             st.write("DEBUG workflow:", workflow)
                             parsed_script = analyze_script(result)
                             st.write("DEBUG parsed_script:", parsed_script)

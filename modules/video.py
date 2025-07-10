@@ -43,8 +43,8 @@ def analyze_script(script_text: str) -> dict:
     
     current_scene = None
 
-    # Compile regexes for re-use
-    time_range_re = re.compile(r'(\d+s)[–-](\d+s)')
+    # Compile regexes
+    time_range_re = re.compile(r'(\d+)s[–-](\d+)s')
     camera_re = re.compile(r'🎥\s*(.*)', re.IGNORECASE)
     lighting_re = re.compile(r'💡\s*(.*)', re.IGNORECASE)
     music_re = re.compile(r'🎶\s*(.*)', re.IGNORECASE)
@@ -56,18 +56,6 @@ def analyze_script(script_text: str) -> dict:
         if not line:
             continue
         
-        # Headers
-        if line.startswith("🎥 Camera direction:"):
-            current_scene["camera"] = clean_label(line, "🎥 Camera direction:")
-        elif line.startswith("💡 Lighting suggestion:"):
-            current_scene["lighting"] = clean_label(line, "💡 Lighting suggestion:")
-        elif line.startswith("🎶 Music style suggestion:"):
-            current_scene["music"] = clean_label(line, "🎶 Music style suggestion:")
-        elif line.startswith("🔄 Transition:"):
-            current_scene["transition"] = clean_label(line, "🔄 Transition:")
-        elif line.startswith("🖼 On-screen text:"):
-            current_scene["onscreen_text"] = clean_label(line, "🖼 On-screen text:")
-
         # Check for scene start
         match = time_range_re.search(line)
         if match:
@@ -75,9 +63,14 @@ def analyze_script(script_text: str) -> dict:
             if current_scene:
                 result["scenes"].append(current_scene)
             
+            start_seconds = int(match.group(1))
+            end_seconds = int(match.group(2))
+
             current_scene = {
-                "start": match.group(1),
-                "end": match.group(2),
+                "start": f"{start_seconds}s",
+                "end": f"{end_seconds}s",
+                "start_seconds": start_seconds,
+                "end_seconds": end_seconds,
                 "text": "",
                 "camera": "",
                 "lighting": "",
@@ -88,30 +81,30 @@ def analyze_script(script_text: str) -> dict:
             # Try to extract text after time range
             parts = line.split(match.group(0))
             if len(parts) > 1:
-                current_scene["text"] = parts[1].strip("–—: ").strip("✅").strip()
+                current_scene["text"] = parts[1].strip("–—: ").strip("✅").strip('" ')
             continue
         
         # Scene attributes
         if current_scene:
             cam = camera_re.search(line)
             if cam:
-                current_scene["camera"] = cam.group(1).strip()
+                current_scene["camera"] = cam.group(1).strip('" ')
                 continue
             lig = lighting_re.search(line)
             if lig:
-                current_scene["lighting"] = lig.group(1).strip()
+                current_scene["lighting"] = lig.group(1).strip('" ')
                 continue
             mus = music_re.search(line)
             if mus:
-                current_scene["music"] = mus.group(1).strip()
+                current_scene["music"] = mus.group(1).strip('" ')
                 continue
             tra = transition_re.search(line)
             if tra:
-                current_scene["transition"] = tra.group(1).strip()
+                current_scene["transition"] = tra.group(1).strip('" ')
                 continue
             ons = onscreen_re.search(line)
             if ons:
-                current_scene["onscreen_text"] = ons.group(1).strip()
+                current_scene["onscreen_text"] = ons.group(1).strip('" ')
                 continue
 
     # Append last scene
@@ -119,6 +112,8 @@ def analyze_script(script_text: str) -> dict:
         result["scenes"].append(current_scene)
 
     return result
+
+
 
 
 def plan_footage(scenes: list) -> list:
@@ -134,6 +129,9 @@ def plan_footage(scenes: list) -> list:
         planned.append({
             "scene_index": idx,
             "visual": visual,
+            "onscreen_text": scene.get("onscreen_text", ""),
+            "music": scene.get("music", ""),
+            "transition": scene.get("transition", ""),
             "requires_user_upload": requires_user_upload,
             "suggested_source": "stock" if not requires_user_upload else "user_upload"
         })

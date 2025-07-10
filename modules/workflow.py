@@ -83,15 +83,10 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         # Detect workflow needs
         workflow = determine_workflow(result)
         st.session_state["auri_context"]["video_workflow"] = workflow
-        
+
         # Insert video steps if needed
         if workflow["needs_video"]:
             video_steps = [
-                {
-                    "title": "Plan Footage",
-                    "auri": "I will analyze your script scenes and help you decide whether to upload footage or auto-generate visuals.",
-                    "user": "Upload any video clips you'd like to use, or skip to auto-generate."
-                },
                 {
                     "title": "Generate Voiceover",
                     "auri": "I will create a voiceover narration for your video scenes.",

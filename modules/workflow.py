@@ -72,26 +72,6 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
         # Plan footage based on scenes
         planned_footage = plan_footage(parsed_script.get("scenes", []))
-        
-        # ✅ Show everything for debug
-        st.code(result, language="markdown")
-        st.subheader("🎬 Parsed Script Scenes")
-        st.json(parsed_script)
-        st.subheader("📹 Planned Footage")
-        st.json(planned_footage)
-        st.write("DEBUG workflow:", workflow)
-
-        # ✅ Interactive per-scene review
-        st.subheader("🎞️ Scene-by-Scene Review & Uploads")
-        for scene in planned_footage:
-            st.markdown(f"#### 🎬 Scene {scene['scene_index'] + 1}")
-            st.write(f"- 🎥 **Visual**: {scene['visual']}")
-            st.write(f"- 🖼 **On-screen Text**: {scene['onscreen_text']}")
-            st.write(f"- 🎶 **Music**: {scene['music']}")
-            st.write(f"- 🔄 **Transition**: {scene['transition']}")
-            st.checkbox("✅ Use Stock Footage", key=f"use_stock_{scene['scene_index']}")
-            st.file_uploader("📤 Upload your clip", key=f"upload_scene_{scene['scene_index']}")
-            st.markdown("---")
 
         # Clean visuals
         for item in planned_footage:
@@ -111,6 +91,18 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         st.subheader("📹 Planned Footage")
         st.json(planned_footage)
         st.write("DEBUG workflow:", workflow)
+
+        # ✅ Interactive per-scene review
+        st.subheader("🎞️ Scene-by-Scene Review & Uploads")
+        for scene in planned_footage:
+            st.markdown(f"#### 🎬 Scene {scene['scene_index'] + 1}")
+            st.write(f"- 🎥 **Visual**: {scene['visual']}")
+            st.write(f"- 🖼 **On-screen Text**: {scene['onscreen_text']}")
+            st.write(f"- 🎶 **Music**: {scene['music']}")
+            st.write(f"- 🔄 **Transition**: {scene['transition']}")
+            st.checkbox("✅ Use Stock Footage", key=f"use_stock_{scene['scene_index']}")
+            st.file_uploader("📤 Upload your clip", key=f"upload_scene_{scene['scene_index']}")
+            st.markdown("---")
 
         # Insert video steps if needed
         if workflow["needs_video"]:

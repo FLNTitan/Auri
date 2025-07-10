@@ -335,6 +335,28 @@ if section == "🧠 Content Ideas":
                         st.markdown("#### ✅ Auri’s Output")
                         st.markdown(result)
 
+                        if (
+                            step["title"].lower().startswith("script")
+                            and "parsed_script" in st.session_state["auri_context"]
+                            and "planned_footage" in st.session_state["auri_context"]
+                        ):
+                            st.subheader("🎞️ Scene-by-Scene Review & Uploads")
+                            for scene in st.session_state["auri_context"]["planned_footage"]:
+                                st.markdown(f"#### 🎬 Scene {scene['scene_index'] + 1}")
+                                st.write(f"- 🎥 **Visual**: {scene['visual']}")
+                                st.write(f"- 🖼 **On-screen Text**: {scene['onscreen_text']}")
+                                st.write(f"- 🎶 **Music**: {scene['music']}")
+                                st.write(f"- 🔄 **Transition**: {scene['transition']}")
+                                st.checkbox(
+                                    "✅ Use Stock Footage",
+                                    key=f"use_stock_{scene['scene_index']}"
+                                )
+                                st.file_uploader(
+                                    "📤 Upload your clip",
+                                    key=f"upload_scene_{scene['scene_index']}"
+                                )
+                                st.markdown("---")
+
                     show_feedback_controls(
                         step_key=step_key,
                         step_title=step["title"],

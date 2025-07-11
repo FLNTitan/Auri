@@ -346,43 +346,38 @@ if section == "🧠 Content Ideas":
                                     st.session_state["auri_context"]["scene_selections"] = {}
 
                                 for scene in st.session_state["auri_context"]["planned_footage"]:
-                                    scene_key = f"scene_{scene['scene_index']}"
-                                    selection = st.session_state["auri_context"]["scene_selections"].get(scene_key, {})
+                                    st.markdown(f"#### 🎬 Scene {scene['scene_index'] + 1}: {scene['visual']}")
 
-                                    st.markdown(f"#### 🎬 Scene {scene['scene_index'] + 1}")
-                                    st.write(f"- 🎥 **Visual**: {scene['visual']}")
-                                    st.write(f"- 🖼 **On-screen Text**: {scene['onscreen_text']}")
-                                    st.write(f"- 🎶 **Music**: {scene['music']}")
-                                    st.write(f"- 🔄 **Transition**: {scene['transition']}")
-
-                                    # Persisted checkbox
-                                    use_stock = st.checkbox(
-                                        "✅ Use Stock Footage",
-                                        value=selection.get("use_stock", False),
-                                        key=f"use_stock_{scene_key}"
+                                    # ✅ What Auri will do
+                                    st.caption("🤖 **I will...**")
+                                    st.markdown(
+                                        f"- Combine this scene into your final video.\n"
+                                        f"- Add on-screen text: **{scene['onscreen_text'] or '—'}**.\n"
+                                        f"- Overlay music: **{scene['music'] or '—'}**.\n"
+                                        f"- Apply transition: **{scene['transition'] or '—'}**."
                                     )
 
-                                    # Persisted uploader
-                                    uploaded = st.file_uploader(
-                                        "📤 Upload your clip",
-                                        key=f"upload_scene_{scene_key}"
-                                    )
-
-                                    # Save state
-                                    st.session_state["auri_context"]["scene_selections"][scene_key] = {
-                                        "use_stock": use_stock,
-                                        "filename": uploaded.name if uploaded else selection.get("filename")
-                                    }
-
-                                    # Display what the user has chosen
-                                    if uploaded:
-                                        st.success(f"✅ Uploaded: {uploaded.name}")
-                                    elif use_stock:
-                                        st.info("ℹ️ Using stock footage.")
+                                    # ✅ What Auri needs from the user
+                                    st.caption("📥 **To do that, I need you to...**")
+                                    if scene["requires_user_upload"]:
+                                        st.warning("📸 Please upload your own footage for this scene to make it personal and authentic.")
+                                        default_use_stock = False
                                     else:
-                                        st.warning("⚠️ No footage selected yet.")
+                                        st.info("🎬 You can use stock footage or upload your own clip.")
+                                        default_use_stock = True
+
+                                    st.checkbox(
+                                        "✅ Use Stock Footage",
+                                        key=f"use_stock_{scene['scene_index']}",
+                                        value=default_use_stock
+                                    )
+                                    st.file_uploader(
+                                        "📤 Upload your clip",
+                                        key=f"upload_scene_{scene['scene_index']}"
+                                    )
 
                                     st.markdown("---")
+
                                 st.subheader("🎬 Final Assembly Plan")
 
                             assembly_plan = build_assembly_plan(

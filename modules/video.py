@@ -113,9 +113,6 @@ def analyze_script(script_text: str) -> dict:
 
     return result
 
-
-
-
 def plan_footage(scenes: list) -> list:
     planned = []
     for idx, scene in enumerate(scenes):
@@ -136,3 +133,21 @@ def plan_footage(scenes: list) -> list:
             "suggested_source": "stock" if not requires_user_upload else "user_upload"
         })
     return planned
+
+
+def build_assembly_plan(planned_footage, scene_selections):
+    assembly_plan = []
+    for scene in planned_footage:
+        scene_key = f"scene_{scene['scene_index']}"
+        selection = scene_selections.get(scene_key, {})
+        plan_item = {
+            "scene_index": scene["scene_index"],
+            "use_stock": selection.get("use_stock", False),
+            "filename": selection.get("filename"),
+            "visual": scene["visual"],
+            "onscreen_text": scene["onscreen_text"],
+            "music": scene["music"],
+            "transition": scene["transition"]
+        }
+        assembly_plan.append(plan_item)
+    return assembly_plan

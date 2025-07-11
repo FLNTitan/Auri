@@ -2,7 +2,7 @@ import streamlit as st
 from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
-from modules.video import detect_video_ideas, analyze_script, determine_workflow
+from modules.video import detect_video_ideas, analyze_script, determine_workflow, build_assembly_plan
 from modules.workflow import handle_step_execution
 from openai import OpenAI
 import re
@@ -341,21 +341,71 @@ if section == "🧠 Content Ideas":
                             and "planned_footage" in st.session_state["auri_context"]
                         ):
                             with st.expander("🎞️ Click to Review and Upload Scene Footage"):
+                                # Initialize dict if missing
+                                if "scene_selections" not in st.session_state["auri_context"]:
+                                    st.session_state["auri_context"]["scene_selections"] = {}
+
                                 for scene in st.session_state["auri_context"]["planned_footage"]:
+                                    scene_key = f"scene_{scene['scene_index']}"
+                                    selection = st.session_state["auri_context"]["scene_selections"].get(scene_key, {})
+
                                     st.markdown(f"#### 🎬 Scene {scene['scene_index'] + 1}")
                                     st.write(f"- 🎥 **Visual**: {scene['visual']}")
                                     st.write(f"- 🖼 **On-screen Text**: {scene['onscreen_text']}")
                                     st.write(f"- 🎶 **Music**: {scene['music']}")
                                     st.write(f"- 🔄 **Transition**: {scene['transition']}")
-                                    st.checkbox(
+
+                                    # Persisted checkbox
+                                    use_stock = st.checkbox(
                                         "✅ Use Stock Footage",
-                                        key=f"use_stock_{scene['scene_index']}"
+                                        value=selection.get("use_stock", False),
+                                        key=f"use_stock_{scene_key}"
                                     )
-                                    st.file_uploader(
+
+                                    # Persisted uploader
+                                    uploaded = st.file_uploader(
                                         "📤 Upload your clip",
-                                        key=f"upload_scene_{scene['scene_index']}"
+                                        key=f"upload_scene_{scene_key}"
                                     )
+
+                                    # Save state
+                                    st.session_state["auri_context"]["scene_selections"][scene_key] = {
+                                        "use_stock": use_stock,
+                                        "filename": uploaded.name if uploaded else selection.get("filename")
+                                    }
+
+                                    # Display what the user has chosen
+                                    if uploaded:
+                                        st.success(f"✅ Uploaded: {uploaded.name}")
+                                    elif use_stock:
+                                        st.info("ℹ️ Using stock footage.")
+                                    else:
+                                        st.warning("⚠️ No footage selected yet.")
+
                                     st.markdown("---")
+                                st.subheader("🎬 Final Assembly Plan")
+
+                            assembly_plan = build_assembly_plan(
+                                st.session_state["auri_context"]["planned_footage"],
+                                st.session_state["auri_context"]["scene_selections"]
+                            )
+
+                            for item in assembly_plan:
+                                st.markdown(f"""
+                                    **Scene {item['scene_index'] + 1}**
+                                    - ✅ Using: {"Stock Footage" if item['use_stock'] else "User Upload" if item['filename'] else "❌ Not selected"}
+                                    - 🎥 Visual: {item['visual']}
+                                    - 🖼 On-screen Text: {item['onscreen_text'] or "—"}
+                                    - 🎶 Music: {item['music'] or "—"}
+                                    - 🔄 Transition: {item['transition'] or "—"}
+                                    """)
+                                if not item["use_stock"] and not item["filename"]:
+                                    st.error("⚠️ This scene is missing footage!")
+                            st.markdown("---")
+
+                            if st.button("🎥 Generate Final Video"):
+                                st.session_state["auri_context"]["assembly_plan"] = assembly_plan
+                                st.success("✅ Assembly plan saved! (Rendering logic not yet implemented.)")
 
                     show_feedback_controls(
                         step_key=step_key,

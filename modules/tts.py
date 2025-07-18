@@ -1,5 +1,5 @@
 import os
-from tts import TTS
+from TTS.api import TTS
 import requests
 
 def generate_voiceover_coqui(text, output_path):

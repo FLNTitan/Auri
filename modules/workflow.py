@@ -111,6 +111,57 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
             return
 
+    elif "voiceover" in title:
+        from modules.tts import generate_voiceover_coqui, generate_voiceover_elevenlabs
+
+        parsed_script = st.session_state["auri_context"].get("parsed_script")
+        if not parsed_script:
+            st.error("❌ No parsed script found. Please generate a script first.")
+            return
+
+        # Let the user choose TTS engine
+        tts_engine = st.radio(
+            "🎤 Select TTS Engine",
+            ["Coqui TTS (local)", "ElevenLabs (cloud)"],
+            key=f"tts_engine_{idx}"
+        )
+
+        if tts_engine == "ElevenLabs (cloud)":
+            voice_id = st.text_input(
+                "🔑 Enter your ElevenLabs voice_id",
+                placeholder="e.g., abc123..."
+            )
+            api_key = st.text_input(
+                "🔑 Enter your ElevenLabs API key",
+                type="password"
+            )
+
+        # Generate button
+        if st.button("🎙️ Generate Voiceovers"):
+            audio_files = []
+            for scene_idx, scene in enumerate(parsed_script["scenes"]):
+                narration_text = scene["text"]
+                if not narration_text.strip():
+                    continue
+
+                output_path = f"voiceover_scene_{scene_idx}.wav"
+
+                if tts_engine == "Coqui TTS (local)":
+                    generate_voiceover_coqui(narration_text, output_path)
+                else:
+                    if not voice_id or not api_key:
+                        st.error("❌ Please enter your ElevenLabs API key and voice_id.")
+                        return
+                    generate_voiceover_elevenlabs(api_key, voice_id, narration_text, output_path)
+
+                st.audio(output_path)
+                audio_files.append(output_path)
+
+            st.success(f"✅ Generated {len(audio_files)} voiceover files.")
+            # Save the list in session state for later assembly
+            st.session_state["auri_context"]["voiceover_files"] = audio_files
+
+            return
 
     elif "caption" in title or "hashtag" in title:
         from modules.captions import generate_caption

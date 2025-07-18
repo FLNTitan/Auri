@@ -412,8 +412,11 @@ if section == "🧠 Content Ideas":
                 elif input_ready and step_key not in st.session_state["executed_steps"] and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
                     with st.spinner("Running..."):
                         handle_step_execution(idx, step, input_val, uploaded_file, full_prompt)
-                        st.rerun()
-                        # 🎯 Show debug info if available
+
+        # Only rerun if this step alters future steps (like Script or Ideation)
+        if any(word in step["title"].lower() for word in ["script", "idea", "repurpose"]):
+            st.rerun()
+
             
             parsed_script = st.session_state["auri_context"].get("parsed_script")
             planned_footage = st.session_state["auri_context"].get("planned_footage")

@@ -85,30 +85,28 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         workflow = determine_workflow(result)
         st.session_state["auri_context"]["video_workflow"] = workflow
 
-        # Insert video steps if needed
         if workflow["needs_video"]:
-            video_steps = [
-                {
-                    "title": "Generate Voiceover",
-                    "auri": "I will create a voiceover narration for your video scenes.",
-                    "user": "Optionally upload a sample of your voice (WAV/MP3) or confirm using AI voice."
-                },
-                {
-                    "title": "Assemble Video",
-                    "auri": "I will combine your footage, voiceover, and on-screen text into a complete video.",
-                    "user": "Review the final video and confirm if you'd like any edits."
-                }
-            ]
-
-            insertion_index = idx
-            st.session_state["auri_steps"] = (
-                st.session_state["auri_steps"][:insertion_index]
-                + video_steps
-                + st.session_state["auri_steps"][insertion_index:]
-            )
-
-            # ✅ Rerun to show new steps
-            st.rerun()
+            existing_titles = [s["title"].lower() for s in st.session_state["auri_steps"]]
+            if not any("voiceover" in title for title in existing_titles):
+                video_steps = [
+                    {
+                        "title": "Generate Voiceover",
+                        "auri": "I will create a voiceover narration for your video scenes.",
+                        "user": "Optionally upload a sample of your voice (WAV/MP3) or confirm using AI voice."
+                    },
+                    {
+                        "title": "Assemble Video",
+                        "auri": "I will combine your footage, voiceover, and on-screen text into a complete video.",
+                        "user": "Review the final video and confirm if you'd like any edits."
+                    }
+                ]
+                insertion_index = idx
+                st.session_state["auri_steps"] = (
+                    st.session_state["auri_steps"][:insertion_index]
+                    + video_steps
+                    + st.session_state["auri_steps"][insertion_index:]
+                )
+                st.rerun()
 
             return
 

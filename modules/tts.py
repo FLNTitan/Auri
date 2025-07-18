@@ -1,6 +1,10 @@
 import os
-from TTS.api import TTS
+from gtts import gTTS
 import requests
+
+def generate_voiceover_fallback(text, output_path):
+    tts = gTTS(text, lang="en")
+    tts.save(output_path)
 
 def generate_voiceover_coqui(text, output_path):
     """

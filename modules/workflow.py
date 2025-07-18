@@ -2,6 +2,7 @@ from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
 from modules.video import detect_video_ideas, analyze_script, determine_workflow, clean_label
+from modules.tts import generate_voiceover_fallback as generate_voiceover_coqui
 import re
 import streamlit as st
 

@@ -2,4 +2,4 @@ openai
 streamlit
 supabase
 pillow
-TTS
+gTTS

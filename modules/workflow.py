@@ -159,6 +159,8 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             st.success(f"✅ Generated {len(audio_files)} voiceover files.")
             # Save the list in session state for later assembly
             st.session_state["auri_context"]["voiceover_files"] = audio_files
+            st.session_state["executed_steps"][step_key] = f"{len(audio_files)} voiceover files generated."
+            st.session_state["auri_context"]["step_outputs"][step_key] = st.session_state["executed_steps"][step_key]
 
             return
 

@@ -316,7 +316,7 @@ if section == "🧠 Content Ideas":
                 if "upload" in step["user"].lower() or "voice" in step["title"].lower():
                     uploaded_file = st.file_uploader("📤 Upload media", key=f"upload_{idx}")
                     input_ready = True
-                    input_val = uploaded_file.name if uploaded_file else None
+                    input_val = uploaded_file
                 elif any(word in step["user"].lower() for word in ["write", "text", "type", "share", "confirm", "describe", "tell", "message", "highlight"]):
                     input_val = st.text_area("✍️ Enter your input", key=f"text_{idx}")
                     input_ready = bool(input_val)

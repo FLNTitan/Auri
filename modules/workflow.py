@@ -11,30 +11,41 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
     title = step["title"].lower()
 
     if idx == 1 and is_idea_or_repurpose_step(step["title"], step["auri"]):
-        # Only run the step if it hasn't been executed yet
-        if step_key not in st.session_state["executed_steps"]:
-            ideas = generate_ideas(full_prompt, input_val)
-            # Clean and filter ideas: remove [brackets], numbers, 'Idea', and empty lines
-            cleaned_ideas = []
-            for idea in ideas:
-                # Remove [brackets] and leading/trailing whitespace
-                clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
-                # Remove leading 'Idea', numbers, colons, and extra spaces
-                clean_idea = re.sub(r"^(Idea\s*\d*:?\s*)", "", clean_idea, flags=re.IGNORECASE)
-                if clean_idea:
-                    cleaned_ideas.append(clean_idea)
-            result = "\n".join(cleaned_ideas)
-            # ✅ Save the result so it re-renders on rerun
-            st.session_state["executed_steps"][step_key] = result
-            st.session_state["auri_context"]["step_outputs"][step_key] = result
-        else:
-            # Use the already saved output
-            cleaned_ideas = st.session_state["executed_steps"][step_key].split("\n")
+        # Remove the step from session state to ensure button disappears
+        if step_key in st.session_state["executed_steps"]:
+            del st.session_state["executed_steps"][step_key]
+            
+        ideas = generate_ideas(full_prompt, input_val)
+        # Clean and filter ideas: remove [brackets], numbers, 'Idea', and empty lines
+        cleaned_ideas = []
+        for idea in ideas:
+            # Remove [brackets] and leading/trailing whitespace
+            clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
+            # Remove leading 'Idea', numbers, colons, and extra spaces
+            title = re.sub(r"^(Idea\s*\d*:?\s*)", "", clean_idea, flags=re.IGNORECASE)
+            if title:
+                # Split into title and description if possible
+                parts = title.split(" - ", 1)
+                if len(parts) > 1:
+                    cleaned_ideas.append((parts[0], parts[1]))
+                else:
+                    cleaned_ideas.append((title, ""))
 
-        # Show label before ideas
-        st.markdown("**Auri's output:**")
-        for clean_idea in cleaned_ideas:
-            st.markdown(f"💡 **{clean_idea}**")
+        result = "\n".join([f"{title} - {desc}" if desc else title for title, desc in cleaned_ideas])
+        # ✅ Save the result so it re-renders on rerun
+        st.session_state["executed_steps"][step_key] = result
+        st.session_state["auri_context"]["step_outputs"][step_key] = result
+
+        # Create a visually separated section for output
+        st.markdown("---")
+        st.markdown("### 📝 Auri's output:")
+        for title, desc in cleaned_ideas:
+            if desc:
+                st.markdown(f"💡 **{title}** - {desc}")
+            else:
+                st.markdown(f"💡 **{title}**")
+        st.markdown("---")
+        show_feedback_controls()
         return
 
     elif "script" in title:

@@ -39,12 +39,37 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         # Create a visually separated section for output
         st.markdown("---")
         st.markdown("### 📝 Auri's output:")
+        
+        # Add custom CSS for idea cards
+        st.markdown("""
+        <style>
+        .idea-card {
+            background-color: #FFFFFF;
+            padding: 1.25rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        .idea-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .idea-description {
+            color: #4B5563;
+            font-size: 1rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
         for title, desc in cleaned_ideas:
-            if desc:
-                st.markdown(f"💡 **{title}** - {desc}")
-            else:
-                st.markdown(f"💡 **{title}**")
-            st.markdown("", unsafe_allow_html=True)  # Add spacing between ideas
+            st.markdown(f"""
+            <div class="idea-card">
+                <div class="idea-title">💡 {title}</div>
+                {f'<div class="idea-description">{desc}</div>' if desc else ''}
+            </div>
+            """, unsafe_allow_html=True)
+            
         st.markdown("---")
         show_feedback_controls()  # Remove the key parameter
         return

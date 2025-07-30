@@ -20,6 +20,8 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         for i, idea in enumerate(ideas, 1):
             clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
             st.markdown(f"💡 **Idea {i}:** {clean_idea}")
+        for clean_idea in cleaned_ideas:
+            st.markdown(f"💡 **{clean_idea}**")
         return
 
     elif "script" in title:

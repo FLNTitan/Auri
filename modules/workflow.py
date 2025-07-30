@@ -44,6 +44,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 st.markdown(f"💡 **{title}** - {desc}")
             else:
                 st.markdown(f"💡 **{title}**")
+            st.markdown("", unsafe_allow_html=True)  # Add spacing between ideas
         st.markdown("---")
         show_feedback_controls(key=f"feedback_{step_key}")
         return

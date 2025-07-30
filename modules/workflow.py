@@ -11,23 +11,30 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
     title = step["title"].lower()
 
     if idx == 1 and is_idea_or_repurpose_step(step["title"], step["auri"]):
-        ideas = generate_ideas(full_prompt, input_val)
-        # Clean and filter ideas: remove [brackets], numbers, 'Idea', and empty lines
-        cleaned_ideas = []
-        for idea in ideas:
-            # Remove [brackets] and leading/trailing whitespace
-            clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
-            # Remove leading 'Idea', numbers, colons, and extra spaces
-            clean_idea = re.sub(r"^(Idea\s*\d*:?\s*)", "", clean_idea, flags=re.IGNORECASE)
-            if clean_idea:
-                cleaned_ideas.append(clean_idea)
-        result = "\n".join(cleaned_ideas)
-        # ✅ Save the result so it re-renders on rerun
-        st.session_state["executed_steps"][step_key] = result
-        st.session_state["auri_context"]["step_outputs"][step_key] = result
+        # Only run the step if it hasn't been executed yet
+        if step_key not in st.session_state["executed_steps"]:
+            ideas = generate_ideas(full_prompt, input_val)
+            # Clean and filter ideas: remove [brackets], numbers, 'Idea', and empty lines
+            cleaned_ideas = []
+            for idea in ideas:
+                # Remove [brackets] and leading/trailing whitespace
+                clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
+                # Remove leading 'Idea', numbers, colons, and extra spaces
+                clean_idea = re.sub(r"^(Idea\s*\d*:?\s*)", "", clean_idea, flags=re.IGNORECASE)
+                if clean_idea:
+                    cleaned_ideas.append(clean_idea)
+            result = "\n".join(cleaned_ideas)
+            # ✅ Save the result so it re-renders on rerun
+            st.session_state["executed_steps"][step_key] = result
+            st.session_state["auri_context"]["step_outputs"][step_key] = result
+        else:
+            # Use the already saved output
+            cleaned_ideas = st.session_state["executed_steps"][step_key].split("\n")
 
+        # Show label before ideas
+        st.markdown("**Auri's output:**")
         for clean_idea in cleaned_ideas:
-            st.markdown(f"💡 {clean_idea}")
+            st.markdown(f"💡 **{clean_idea}**")
         return
 
     elif "script" in title:

@@ -45,7 +45,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             else:
                 st.markdown(f"💡 **{title}**")
         st.markdown("---")
-        show_feedback_controls()
+        show_feedback_controls(key=f"feedback_{step_key}")
         return
 
     elif "script" in title:

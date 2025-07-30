@@ -36,6 +36,10 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         st.session_state["executed_steps"][step_key] = result
         st.session_state["auri_context"]["step_outputs"][step_key] = result
 
+        # Ensure step is removed from session state to make button disappear
+        if step_key in st.session_state["executed_steps"]:
+            del st.session_state["executed_steps"][step_key]
+        
         # Create a visually separated section for output
         st.markdown("---")
         st.markdown("### 📝 Auri's output:")
@@ -71,7 +75,19 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             """, unsafe_allow_html=True)
             
         st.markdown("---")
-        show_feedback_controls()  # Remove the key parameter
+        
+        def regenerate_callback():
+            if step_key in st.session_state["executed_steps"]:
+                del st.session_state["executed_steps"][step_key]
+            st.session_state[f"{step_key}_regenerated"] = True
+            st.rerun()
+
+        show_feedback_controls(
+            step_key=step_key,
+            step_title=step["title"],
+            regenerate_callback=regenerate_callback,
+            language=st.session_state.get("auri_language", "English")
+        )
         return
 
     elif "script" in title:

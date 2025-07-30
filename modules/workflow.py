@@ -12,14 +12,22 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
     if idx == 1 and is_idea_or_repurpose_step(step["title"], step["auri"]):
         ideas = generate_ideas(full_prompt, input_val)
-        result = "\n".join(ideas)
+        # Clean and filter ideas: remove [brackets], numbers, 'Idea', and empty lines
+        cleaned_ideas = []
+        for idea in ideas:
+            # Remove [brackets] and leading/trailing whitespace
+            clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
+            # Remove leading 'Idea', numbers, colons, and extra spaces
+            clean_idea = re.sub(r"^(Idea\s*\d*:?\s*)", "", clean_idea, flags=re.IGNORECASE)
+            if clean_idea:
+                cleaned_ideas.append(clean_idea)
+        result = "\n".join(cleaned_ideas)
         # ✅ Save the result so it re-renders on rerun
         st.session_state["executed_steps"][step_key] = result
         st.session_state["auri_context"]["step_outputs"][step_key] = result
 
-        for i, idea in enumerate(ideas, 1):
-            clean_idea = re.sub(r"\[.*?\]", "", idea).strip()
-            st.markdown(f"💡 **Idea {i}:** {clean_idea}")
+        for clean_idea in cleaned_ideas:
+            st.markdown(f"💡 {clean_idea}")
         return
 
     elif "script" in title:

@@ -35,45 +35,37 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         # ✅ Save the result so it re-renders on rerun
         st.session_state["executed_steps"][step_key] = result
         st.session_state["auri_context"]["step_outputs"][step_key] = result
-
-        # Ensure step is removed from session state to make button disappear
-        if step_key in st.session_state["executed_steps"]:
-            del st.session_state["executed_steps"][step_key]
         
         # Create a visually separated section for output
         st.markdown("---")
         st.markdown("### 📝 Auri's output:")
         
-        # Add custom CSS for idea cards
+        # Container for ideas with background and spacing
         st.markdown("""
-        <style>
-        .idea-card {
-            background-color: #FFFFFF;
-            padding: 1.25rem 1.5rem;
-            margin: 1rem 0;
-            border-radius: 12px;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .idea-title {
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-        .idea-description {
-            color: #4B5563;
-            font-size: 1rem;
-        }
-        </style>
+            <div style='background-color: #F8FAFC; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;'>
         """, unsafe_allow_html=True)
-
+        
         for title, desc in cleaned_ideas:
             st.markdown(f"""
-            <div class="idea-card">
-                <div class="idea-title">💡 {title}</div>
-                {f'<div class="idea-description">{desc}</div>' if desc else ''}
-            </div>
+                <div style='
+                    background-color: white;
+                    padding: 1.25rem;
+                    margin: 1rem 0;
+                    border-radius: 12px;
+                    border: 1px solid rgba(0,0,0,0.1);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                '>
+                    <div style='
+                        font-weight: 600;
+                        font-size: 1.1rem;
+                        margin-bottom: 0.5rem;
+                        color: #1F2937;
+                    '>💡 {title}</div>
+                    {f'<div style="color: #4B5563; font-size: 1rem;">{desc}</div>' if desc else ''}
+                </div>
             """, unsafe_allow_html=True)
             
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("---")
         
         def regenerate_callback():

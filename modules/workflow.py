@@ -142,13 +142,19 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
         st.warning("[DEBUG] Before Regenerate/Generate button logic")
         # Regenerate button
-        if st.button("🔄 Regenerate Voiceovers"):
+        st.warning("[DEBUG] About to render Regenerate button")
+        regen_pressed = st.button("🔄 Regenerate Voiceovers")
+        st.warning(f"[DEBUG] Regenerate button value: {regen_pressed}")
+        if regen_pressed:
             st.warning("[DEBUG] Regenerate button pressed")
             do_generate()
 
         # Only show generate button if never generated
         if not st.session_state.get(gen_key):
-            if st.button("🎙️ Generate Voiceovers"):
+            st.warning("[DEBUG] About to render Generate button")
+            gen_pressed = st.button("🎙️ Generate Voiceovers")
+            st.warning(f"[DEBUG] Generate button value: {gen_pressed}")
+            if gen_pressed:
                 st.warning("[DEBUG] Generate button pressed")
                 do_generate()
 

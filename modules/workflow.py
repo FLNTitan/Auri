@@ -128,55 +128,60 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             st.info("Voiceover previews cleared.")
 
         if gen_pressed:
-            st.warning("[DEBUG] Generate button pressed")
-            st.info(f"Current working directory: {os.getcwd()}")
-            audio_buffers = []
-            debug_msgs = []
-            valid_narration = False
-            for scene_idx, scene in enumerate(scenes):
-                narration_text = scene.get("text", "")
-                st.write(f"[DEBUG] Scene {scene_idx} narration_text: {narration_text!r}")
-                if narration_text and narration_text.strip():
-                    valid_narration = True
-                if not narration_text or not narration_text.strip():
-                    debug_msgs.append(f"[SKIP] Scene {scene_idx} has empty text.")
-                    continue
-                try:
-                    st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
-                    tts = gTTS(narration_text, lang='en')
-                    buf = io.BytesIO()
-                    tts.write_to_fp(buf)
-                    buf.seek(0)
-                    st.write(f"[DEBUG] MP3 buffer size for scene {scene_idx}: {len(buf.getvalue())} bytes")
-                    audio_buffers.append(buf)
-                    debug_msgs.append(f"✅ In-memory audio generated for scene {scene_idx}")
-                except Exception as e:
-                    st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
-                    debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
-                    # Fallback: generate a dummy audio buffer so preview UI always appears
-                    import wave
-                    import struct
-                    dummy_buf = io.BytesIO()
-                    with wave.open(dummy_buf, 'wb') as wf:
-                        wf.setnchannels(1)
-                        wf.setsampwidth(2)
-                        wf.setframerate(22050)
-                        # 0.5 seconds of silence
-                        frames = b''.join([struct.pack('<h', 0) for _ in range(11025)])
-                        wf.writeframes(frames)
-                    dummy_buf.seek(0)
-                    st.write(f"[DEBUG] Dummy WAV buffer size for scene {scene_idx}: {len(dummy_buf.getvalue())} bytes")
-                    audio_buffers.append(dummy_buf)
-                    debug_msgs.append(f"✅ Dummy audio generated for scene {scene_idx}")
-            st.session_state["voiceover_debug_msgs"] = debug_msgs
-            if not valid_narration:
-                st.error("❌ None of your scenes have valid narration text. Please check your script step and ensure each scene has a 'text' field with narration.")
-            if audio_buffers:
-                st.session_state["voiceover_local_buffers"] = audio_buffers
-                st.session_state["voiceover_local_approved"] = False
-            else:
-                st.warning("No audio buffers were generated. Please check your script and try again.")
-                st.session_state.pop("voiceover_local_buffers", None)
+            import traceback
+            try:
+                st.warning("[DEBUG] Generate button pressed")
+                st.info(f"Current working directory: {os.getcwd()}")
+                audio_buffers = []
+                debug_msgs = []
+                valid_narration = False
+                for scene_idx, scene in enumerate(scenes):
+                    narration_text = scene.get("text", "")
+                    st.write(f"[DEBUG] Scene {scene_idx} narration_text: {narration_text!r}")
+                    if narration_text and narration_text.strip():
+                        valid_narration = True
+                    if not narration_text or not narration_text.strip():
+                        debug_msgs.append(f"[SKIP] Scene {scene_idx} has empty text.")
+                        continue
+                    try:
+                        st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
+                        tts = gTTS(narration_text, lang='en')
+                        buf = io.BytesIO()
+                        tts.write_to_fp(buf)
+                        buf.seek(0)
+                        st.write(f"[DEBUG] MP3 buffer size for scene {scene_idx}: {len(buf.getvalue())} bytes")
+                        audio_buffers.append(buf)
+                        debug_msgs.append(f"✅ In-memory audio generated for scene {scene_idx}")
+                    except Exception as e:
+                        st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
+                        debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
+                        # Fallback: generate a dummy audio buffer so preview UI always appears
+                        import wave
+                        import struct
+                        dummy_buf = io.BytesIO()
+                        with wave.open(dummy_buf, 'wb') as wf:
+                            wf.setnchannels(1)
+                            wf.setsampwidth(2)
+                            wf.setframerate(22050)
+                            # 0.5 seconds of silence
+                            frames = b''.join([struct.pack('<h', 0) for _ in range(11025)])
+                            wf.writeframes(frames)
+                        dummy_buf.seek(0)
+                        st.write(f"[DEBUG] Dummy WAV buffer size for scene {scene_idx}: {len(dummy_buf.getvalue())} bytes")
+                        audio_buffers.append(dummy_buf)
+                        debug_msgs.append(f"✅ Dummy audio generated for scene {scene_idx}")
+                st.session_state["voiceover_debug_msgs"] = debug_msgs
+                if not valid_narration:
+                    st.error("❌ None of your scenes have valid narration text. Please check your script step and ensure each scene has a 'text' field with narration.")
+                if audio_buffers:
+                    st.session_state["voiceover_local_buffers"] = audio_buffers
+                    st.session_state["voiceover_local_approved"] = False
+                else:
+                    st.warning("No audio buffers were generated. Please check your script and try again.")
+                    st.session_state.pop("voiceover_local_buffers", None)
+            except Exception as fatal_e:
+                st.error(f"[FATAL ERROR] Exception in Generate Voiceovers: {fatal_e}")
+                st.code(traceback.format_exc())
 
         # --- Known-good MP3 preview for Streamlit audio widget test ---
         st.markdown("---")

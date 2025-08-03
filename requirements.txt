@@ -3,4 +3,3 @@ streamlit
 supabase
 pillow
 gTTS
-TTS

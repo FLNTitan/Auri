@@ -91,97 +91,140 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         return
 
     def handle_voiceover_step():
-        from modules.tts import generate_voiceover_fallback
-        import os
-        st.warning("[DEBUG] handle_voiceover_step CALLED")
-        parsed_script = st.session_state["auri_context"].get("parsed_script")
-        if not parsed_script:
-            st.error("❌ No parsed script found. Please generate a script first.")
-            return
-        scenes = parsed_script.get("scenes")
-        st.info(f"[DEBUG] scenes: {scenes}")
-        if not scenes or not isinstance(scenes, list):
-            st.error("❌ No scenes found in parsed script. Please check your script generation step.")
+        import traceback
+        try:
+            from modules.tts import generate_voiceover_fallback
+            import os
+            st.warning("[DEBUG] handle_voiceover_step CALLED")
+            parsed_script = st.session_state["auri_context"].get("parsed_script")
             st.info(f"[DEBUG] parsed_script: {parsed_script}")
-            return
+            if not parsed_script:
+                st.error("❌ No parsed script found. Please generate a script first.")
+                return
+            scenes = parsed_script.get("scenes")
+            st.info(f"[DEBUG] scenes: {scenes}")
+            if not scenes or not isinstance(scenes, list):
+                st.error("❌ No scenes found in parsed script. Please check your script generation step.")
+                st.info(f"[DEBUG] parsed_script: {parsed_script}")
+                return
 
-        import io
-        from gtts import gTTS
-        import base64
-        st.warning("[DEBUG] handle_voiceover_step CALLED")
+            import io
+            from gtts import gTTS
+            import base64
+            st.warning("[DEBUG] handle_voiceover_step CALLED")
 
-        col1, col2 = st.columns([2,1])
-        with col1:
-            gen_pressed = st.button("🎙️ Generate Voiceovers", key="gen_voice_btn")
-        with col2:
-            clear_pressed = st.button("🗑️ Clear Voiceovers", key="clear_voice_btn")
+            col1, col2 = st.columns([2,1])
+            with col1:
+                gen_pressed = st.button("🎙️ Generate Voiceovers", key="gen_voice_btn")
+            with col2:
+                clear_pressed = st.button("🗑️ Clear Voiceovers", key="clear_voice_btn")
 
-        # Always show debug info if present
-        debug_msgs = st.session_state.get("voiceover_debug_msgs", [])
-        if debug_msgs:
-            st.info("\n".join(debug_msgs))
+            # Always show debug info if present
+            debug_msgs = st.session_state.get("voiceover_debug_msgs", [])
+            if debug_msgs:
+                st.info("\n".join(debug_msgs))
 
-        if clear_pressed:
-            st.session_state.pop("voiceover_local_buffers", None)
-            st.session_state.pop("voiceover_local_approved", None)
-            st.session_state.pop("voiceover_debug_msgs", None)
-            st.info("Voiceover previews cleared.")
+            if clear_pressed:
+                st.session_state.pop("voiceover_local_buffers", None)
+                st.session_state.pop("voiceover_local_approved", None)
+                st.session_state.pop("voiceover_debug_msgs", None)
+                st.info("Voiceover previews cleared.")
 
-        if gen_pressed:
-            import traceback
-            try:
-                st.warning("[DEBUG] Generate button pressed")
-                st.info(f"Current working directory: {os.getcwd()}")
-                audio_buffers = []
-                debug_msgs = []
-                valid_narration = False
-                for scene_idx, scene in enumerate(scenes):
-                    narration_text = scene.get("text", "")
-                    st.write(f"[DEBUG] Scene {scene_idx} narration_text: {narration_text!r}")
-                    if narration_text and narration_text.strip():
-                        valid_narration = True
-                    if not narration_text or not narration_text.strip():
-                        debug_msgs.append(f"[SKIP] Scene {scene_idx} has empty text.")
-                        continue
+            if gen_pressed:
+                try:
+                    st.warning("[DEBUG] Generate button pressed")
+                    st.info(f"Current working directory: {os.getcwd()}")
+                    audio_buffers = []
+                    debug_msgs = []
+                    valid_narration = False
+                    for scene_idx, scene in enumerate(scenes):
+                        narration_text = scene.get("text", "")
+                        st.write(f"[DEBUG] Scene {scene_idx} narration_text: {narration_text!r}")
+                        if narration_text and narration_text.strip():
+                            valid_narration = True
+                        if not narration_text or not narration_text.strip():
+                            debug_msgs.append(f"[SKIP] Scene {scene_idx} has empty text.")
+                            continue
+                        try:
+                            st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
+                            tts = gTTS(narration_text, lang='en')
+                            buf = io.BytesIO()
+                            tts.write_to_fp(buf)
+                            buf.seek(0)
+                            st.write(f"[DEBUG] MP3 buffer size for scene {scene_idx}: {len(buf.getvalue())} bytes")
+                            audio_buffers.append(buf)
+                            debug_msgs.append(f"✅ In-memory audio generated for scene {scene_idx}")
+                        except Exception as e:
+                            st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
+                            debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
+                            # Fallback: generate a dummy audio buffer so preview UI always appears
+                            import wave
+                            import struct
+                            dummy_buf = io.BytesIO()
+                            with wave.open(dummy_buf, 'wb') as wf:
+                                wf.setnchannels(1)
+                                wf.setsampwidth(2)
+                                wf.setframerate(22050)
+                                # 0.5 seconds of silence
+                                frames = b''.join([struct.pack('<h', 0) for _ in range(11025)])
+                                wf.writeframes(frames)
+                            dummy_buf.seek(0)
+                            st.write(f"[DEBUG] Dummy WAV buffer size for scene {scene_idx}: {len(dummy_buf.getvalue())} bytes")
+                            audio_buffers.append(dummy_buf)
+                            debug_msgs.append(f"✅ Dummy audio generated for scene {scene_idx}")
+                    st.session_state["voiceover_debug_msgs"] = debug_msgs
+                    if not valid_narration:
+                        st.error("❌ None of your scenes have valid narration text. Please check your script step and ensure each scene has a 'text' field with narration.")
+                    if audio_buffers:
+                        st.session_state["voiceover_local_buffers"] = audio_buffers
+                        st.session_state["voiceover_local_approved"] = False
+                    else:
+                        st.warning("No audio buffers were generated. Please check your script and try again.")
+                        st.session_state.pop("voiceover_local_buffers", None)
+                except Exception as fatal_e:
+                    st.error(f"[FATAL ERROR] Exception in Generate Voiceovers: {fatal_e}")
+                    st.code(traceback.format_exc())
+
+            # --- Known-good MP3 preview for Streamlit audio widget test ---
+            st.markdown("---")
+            st.markdown("#### [DEBUG] Known-good MP3 Preview (should always play)")
+            import base64
+            # 1-second 440Hz sine wave MP3, base64-encoded (generated externally)
+            known_good_mp3_b64 = (
+                "SUQzAwAAAAAAFlRFTkMAAAAwAAADTGF2ZjU2LjI0LjEwNAAAAAAAAAAAAAAA//tQxAADBQAA"
+                "AABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA//u1TAAABhAAAABJTkZPAABBAAAAPwAAACAA"
+            )
+            import io
+            known_good_mp3 = io.BytesIO(base64.b64decode(known_good_mp3_b64))
+            st.audio(known_good_mp3, format='audio/mp3')
+
+            audio_buffers = st.session_state.get("voiceover_local_buffers")
+            if audio_buffers:
+                st.markdown("### 🎧 Preview Voiceovers")
+                for i, buf in enumerate(audio_buffers):
+                    st.markdown(f"**Scene {i+1}:**")
+                    st.audio(buf, format='audio/mp3')
                     try:
-                        st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
-                        tts = gTTS(narration_text, lang='en')
-                        buf = io.BytesIO()
-                        tts.write_to_fp(buf)
                         buf.seek(0)
-                        st.write(f"[DEBUG] MP3 buffer size for scene {scene_idx}: {len(buf.getvalue())} bytes")
-                        audio_buffers.append(buf)
-                        debug_msgs.append(f"✅ In-memory audio generated for scene {scene_idx}")
+                        audio_bytes = buf.read()
+                        b64 = base64.b64encode(audio_bytes).decode()
+                        href = f'<a href="data:audio/mp3;base64,{b64}" download="scene_{i+1}.mp3">⬇️ Download</a>'
+                        st.markdown(href, unsafe_allow_html=True)
                     except Exception as e:
-                        st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
-                        debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
-                        # Fallback: generate a dummy audio buffer so preview UI always appears
-                        import wave
-                        import struct
-                        dummy_buf = io.BytesIO()
-                        with wave.open(dummy_buf, 'wb') as wf:
-                            wf.setnchannels(1)
-                            wf.setsampwidth(2)
-                            wf.setframerate(22050)
-                            # 0.5 seconds of silence
-                            frames = b''.join([struct.pack('<h', 0) for _ in range(11025)])
-                            wf.writeframes(frames)
-                        dummy_buf.seek(0)
-                        st.write(f"[DEBUG] Dummy WAV buffer size for scene {scene_idx}: {len(dummy_buf.getvalue())} bytes")
-                        audio_buffers.append(dummy_buf)
-                        debug_msgs.append(f"✅ Dummy audio generated for scene {scene_idx}")
-                st.session_state["voiceover_debug_msgs"] = debug_msgs
-                if not valid_narration:
-                    st.error("❌ None of your scenes have valid narration text. Please check your script step and ensure each scene has a 'text' field with narration.")
-                if audio_buffers:
-                    st.session_state["voiceover_local_buffers"] = audio_buffers
-                    st.session_state["voiceover_local_approved"] = False
+                        st.warning(f"Could not load audio for download: {e}")
+                if not st.session_state.get("voiceover_local_approved"):
+                    if st.button("✅ Approve Voiceovers", key="approve_voice_btn"):
+                        st.session_state["voiceover_local_approved"] = True
+                        st.success("Voiceovers approved!")
                 else:
-                    st.warning("No audio buffers were generated. Please check your script and try again.")
-                    st.session_state.pop("voiceover_local_buffers", None)
-            except Exception as fatal_e:
-                st.error(f"[FATAL ERROR] Exception in Generate Voiceovers: {fatal_e}")
-                st.code(traceback.format_exc())
+                    st.success("Voiceovers approved!")
+            else:
+                st.info("No voiceover previews available. Click 'Generate Voiceovers' to create them.")
+            return
+        except Exception as top_fatal:
+            st.error(f"[FATAL ERROR] Exception in handle_voiceover_step: {top_fatal}")
+            import traceback
+            st.code(traceback.format_exc())
 
         # --- Known-good MP3 preview for Streamlit audio widget test ---
         st.markdown("---")

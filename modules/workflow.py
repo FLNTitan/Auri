@@ -105,36 +105,35 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         audio_files_key = f"voiceover_files_{step_key}"
 
         def do_generate():
+            import io
+            from modules.tts import generate_voiceover_fallback
+            from gtts import gTTS
             st.warning("[DEBUG] do_generate CALLED")
-            audio_files = []
+            audio_buffers = []
             debug_msgs = []
             st.info(f"Current working directory: {os.getcwd()}")
             for scene_idx, scene in enumerate(parsed_script["scenes"]):
                 narration_text = scene["text"]
                 if not narration_text.strip():
                     continue
-                output_path = f"voiceover_scene_{scene_idx}.mp3"
-                st.write(f"[DEBUG] Scene {scene_idx}: narration_text='{narration_text[:60]}...' output_path='{output_path}'")
+                st.write(f"[DEBUG] Scene {scene_idx}: narration_text='{narration_text[:60]}...'")
                 try:
-                    st.write(f"[DEBUG] Calling generate_voiceover_fallback for scene {scene_idx}")
-                    generate_voiceover_fallback(narration_text, output_path)
-                    st.write(f"[DEBUG] Returned from generate_voiceover_fallback for scene {scene_idx}")
-                    # Debug: check if file exists and its size
-                    if os.path.exists(output_path):
-                        file_size = os.path.getsize(output_path)
-                        debug_msgs.append(f"✅ File created: {output_path} ({file_size} bytes)")
-                        audio_files.append(output_path)
-                    else:
-                        debug_msgs.append(f"❌ File NOT created: {output_path}")
+                    st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
+                    tts = gTTS(narration_text, lang='en')
+                    buf = io.BytesIO()
+                    tts.write_to_fp(buf)
+                    buf.seek(0)
+                    audio_buffers.append(buf)
+                    debug_msgs.append(f"✅ In-memory audio generated for scene {scene_idx}")
                 except Exception as e:
                     st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
                     debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
-            if audio_files:
-                st.session_state[audio_files_key] = audio_files
+            if audio_buffers:
+                st.session_state[audio_files_key] = audio_buffers
                 st.session_state[gen_key] = True
                 st.session_state[approve_key] = False
-                st.session_state["auri_context"]["voiceover_files"] = audio_files
-                st.session_state["executed_steps"][step_key] = f"{len(audio_files)} voiceover files generated."
+                st.session_state["auri_context"]["voiceover_files"] = [f"scene_{i}.mp3" for i in range(len(audio_buffers))]
+                st.session_state["executed_steps"][step_key] = f"{len(audio_buffers)} voiceover files generated."
                 st.session_state["auri_context"]["step_outputs"][step_key] = st.session_state["executed_steps"][step_key]
             # Show debug info
             if debug_msgs:
@@ -161,21 +160,17 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         # Show audio and approve button if generated
         if st.session_state.get(gen_key):
             import base64
-            audio_files = st.session_state.get(audio_files_key, [])
+            audio_buffers = st.session_state.get(audio_files_key, [])
             st.markdown("### 🎧 Preview Voiceovers")
-            for i, audio_path in enumerate(audio_files):
+            for i, buf in enumerate(audio_buffers):
                 st.markdown(f"**Scene {i+1}:**")
-                # Check if file exists before trying to play or download
-                if not os.path.exists(audio_path):
-                    st.warning(f"Audio file not found: {audio_path}")
-                    continue
-                st.audio(audio_path)
+                st.audio(buf, format='audio/mp3')
                 # Add download button
                 try:
-                    with open(audio_path, "rb") as f:
-                        audio_bytes = f.read()
+                    buf.seek(0)
+                    audio_bytes = buf.read()
                     b64 = base64.b64encode(audio_bytes).decode()
-                    href = f'<a href="data:audio/mp3;base64,{b64}" download="{audio_path}">⬇️ Download</a>'
+                    href = f'<a href="data:audio/mp3;base64,{b64}" download="scene_{i+1}.mp3">⬇️ Download</a>'
                     st.markdown(href, unsafe_allow_html=True)
                 except Exception as e:
                     st.warning(f"Could not load audio for download: {e}")

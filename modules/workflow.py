@@ -91,26 +91,11 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         return
 
     def handle_voiceover_step():
-        from modules.tts import generate_voiceover_coqui, generate_voiceover_elevenlabs
+        from modules.tts import generate_voiceover_coqui
         parsed_script = st.session_state["auri_context"].get("parsed_script")
         if not parsed_script:
             st.error("❌ No parsed script found. Please generate a script first.")
             return
-        tts_engine = st.radio(
-            "🎤 Select TTS Engine",
-            ["Coqui TTS (local)", "ElevenLabs (cloud)"],
-            key=f"tts_engine_{idx}"
-        )
-        voice_id = api_key = None
-        if tts_engine == "ElevenLabs (cloud)":
-            voice_id = st.text_input(
-                "🔑 Enter your ElevenLabs voice_id",
-                placeholder="e.g., abc123..."
-            )
-            api_key = st.text_input(
-                "🔑 Enter your ElevenLabs API key",
-                type="password"
-            )
         if st.button("🎙️ Generate Voiceovers"):
             audio_files = []
             for scene_idx, scene in enumerate(parsed_script["scenes"]):
@@ -118,19 +103,17 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 if not narration_text.strip():
                     continue
                 output_path = f"voiceover_scene_{scene_idx}.wav"
-                if tts_engine == "Coqui TTS (local)":
+                try:
                     generate_voiceover_coqui(narration_text, output_path)
-                else:
-                    if not voice_id or not api_key:
-                        st.error("❌ Please enter your ElevenLabs API key and voice_id.")
-                        return
-                    generate_voiceover_elevenlabs(api_key, voice_id, narration_text, output_path)
-                st.audio(output_path)
-                audio_files.append(output_path)
-            st.success(f"✅ Generated {len(audio_files)} voiceover files.")
-            st.session_state["auri_context"]["voiceover_files"] = audio_files
-            st.session_state["executed_steps"][step_key] = f"{len(audio_files)} voiceover files generated."
-            st.session_state["auri_context"]["step_outputs"][step_key] = st.session_state["executed_steps"][step_key]
+                    st.audio(output_path)
+                    audio_files.append(output_path)
+                except Exception as e:
+                    st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
+            if audio_files:
+                st.success(f"✅ Generated {len(audio_files)} voiceover files.")
+                st.session_state["auri_context"]["voiceover_files"] = audio_files
+                st.session_state["executed_steps"][step_key] = f"{len(audio_files)} voiceover files generated."
+                st.session_state["auri_context"]["step_outputs"][step_key] = st.session_state["executed_steps"][step_key]
         return
 
     def handle_caption_hashtag_step():

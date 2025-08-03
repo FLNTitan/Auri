@@ -45,6 +45,7 @@ def analyze_script(script_text: str) -> dict:
 
     # Compile regexes
     time_range_re = re.compile(r'(\d+)s[–-](\d+)s')
+    narration_re = re.compile(r'^✅\s*["“](.*?)["”]$')
     camera_re = re.compile(r'🎥\s*(.*)', re.IGNORECASE)
     lighting_re = re.compile(r'💡\s*(.*)', re.IGNORECASE)
     music_re = re.compile(r'🎶\s*(.*)', re.IGNORECASE)
@@ -106,6 +107,11 @@ def analyze_script(script_text: str) -> dict:
             if ons:
                 current_scene["onscreen_text"] = ons.group(1).strip('" ')
                 continue
+            narration = narration_re.search(line)
+            if narration:
+                current_scene["text"] = narration.group(1).strip()
+                continue
+
 
     # Append last scene
     if current_scene:

@@ -96,7 +96,13 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         if not parsed_script:
             st.error("❌ No parsed script found. Please generate a script first.")
             return
-        if st.button("🎙️ Generate Voiceovers"):
+
+        # Session state keys
+        gen_key = f"voiceover_generated_{step_key}"
+        approve_key = f"voiceover_approved_{step_key}"
+        audio_files_key = f"voiceover_files_{step_key}"
+
+        def do_generate():
             audio_files = []
             for scene_idx, scene in enumerate(parsed_script["scenes"]):
                 narration_text = scene["text"]
@@ -105,15 +111,39 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 output_path = f"voiceover_scene_{scene_idx}.mp3"
                 try:
                     generate_voiceover_fallback(narration_text, output_path)
-                    st.audio(output_path)
                     audio_files.append(output_path)
                 except Exception as e:
                     st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
             if audio_files:
-                st.success(f"✅ Generated {len(audio_files)} voiceover files.")
+                st.session_state[audio_files_key] = audio_files
+                st.session_state[gen_key] = True
+                st.session_state[approve_key] = False
                 st.session_state["auri_context"]["voiceover_files"] = audio_files
                 st.session_state["executed_steps"][step_key] = f"{len(audio_files)} voiceover files generated."
                 st.session_state["auri_context"]["step_outputs"][step_key] = st.session_state["executed_steps"][step_key]
+
+        # Regenerate button
+        if st.button("🔄 Regenerate Voiceovers"):
+            do_generate()
+
+        # Only show generate button if never generated
+        if not st.session_state.get(gen_key):
+            if st.button("🎙️ Generate Voiceovers"):
+                do_generate()
+
+        # Show audio and approve button if generated
+        if st.session_state.get(gen_key):
+            audio_files = st.session_state.get(audio_files_key, [])
+            st.markdown("### 🎧 Preview Voiceovers")
+            for i, audio_path in enumerate(audio_files):
+                st.markdown(f"**Scene {i+1}:**")
+                st.audio(audio_path)
+            if not st.session_state.get(approve_key):
+                if st.button("✅ Approve Voiceovers"):
+                    st.session_state[approve_key] = True
+                    st.success("Voiceovers approved!")
+            else:
+                st.success("Voiceovers approved!")
         return
 
     def handle_caption_hashtag_step():

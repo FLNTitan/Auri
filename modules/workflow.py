@@ -133,11 +133,21 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
         # Show audio and approve button if generated
         if st.session_state.get(gen_key):
+            import base64
             audio_files = st.session_state.get(audio_files_key, [])
             st.markdown("### 🎧 Preview Voiceovers")
             for i, audio_path in enumerate(audio_files):
                 st.markdown(f"**Scene {i+1}:**")
                 st.audio(audio_path)
+                # Add download button
+                try:
+                    with open(audio_path, "rb") as f:
+                        audio_bytes = f.read()
+                    b64 = base64.b64encode(audio_bytes).decode()
+                    href = f'<a href="data:audio/mp3;base64,{b64}" download="{audio_path}">⬇️ Download</a>'
+                    st.markdown(href, unsafe_allow_html=True)
+                except Exception as e:
+                    st.warning(f"Could not load audio for download: {e}")
             if not st.session_state.get(approve_key):
                 if st.button("✅ Approve Voiceovers"):
                     st.session_state[approve_key] = True

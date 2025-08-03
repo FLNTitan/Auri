@@ -99,6 +99,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             st.error("❌ No parsed script found. Please generate a script first.")
             return
         scenes = parsed_script.get("scenes")
+        st.info(f"[DEBUG] scenes: {scenes}")
         if not scenes or not isinstance(scenes, list):
             st.error("❌ No scenes found in parsed script. Please check your script generation step.")
             st.info(f"[DEBUG] parsed_script: {parsed_script}")
@@ -131,9 +132,12 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             st.info(f"Current working directory: {os.getcwd()}")
             audio_buffers = []
             debug_msgs = []
+            valid_narration = False
             for scene_idx, scene in enumerate(scenes):
                 narration_text = scene.get("text", "")
-                st.write(f"[DEBUG] Scene {scene_idx}: narration_text='{narration_text[:60]}...'")
+                st.write(f"[DEBUG] Scene {scene_idx} narration_text: {narration_text!r}")
+                if narration_text and narration_text.strip():
+                    valid_narration = True
                 if not narration_text or not narration_text.strip():
                     debug_msgs.append(f"[SKIP] Scene {scene_idx} has empty text.")
                     continue
@@ -149,6 +153,8 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                     st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
                     debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
             st.session_state["voiceover_debug_msgs"] = debug_msgs
+            if not valid_narration:
+                st.error("❌ None of your scenes have valid narration text. Please check your script step and ensure each scene has a 'text' field with narration.")
             if audio_buffers:
                 st.session_state["voiceover_local_buffers"] = audio_buffers
                 st.session_state["voiceover_local_approved"] = False

@@ -106,13 +106,17 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         def do_generate():
             audio_files = []
             debug_msgs = []
+            st.info(f"Current working directory: {os.getcwd()}")
             for scene_idx, scene in enumerate(parsed_script["scenes"]):
                 narration_text = scene["text"]
                 if not narration_text.strip():
                     continue
                 output_path = f"voiceover_scene_{scene_idx}.mp3"
+                st.write(f"[DEBUG] Scene {scene_idx}: narration_text='{narration_text[:60]}...' output_path='{output_path}'")
                 try:
+                    st.write(f"[DEBUG] Calling generate_voiceover_fallback for scene {scene_idx}")
                     generate_voiceover_fallback(narration_text, output_path)
+                    st.write(f"[DEBUG] Returned from generate_voiceover_fallback for scene {scene_idx}")
                     # Debug: check if file exists and its size
                     if os.path.exists(output_path):
                         file_size = os.path.getsize(output_path)

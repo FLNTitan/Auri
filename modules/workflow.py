@@ -111,13 +111,19 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
 
         col1, col2 = st.columns([2,1])
         with col1:
-            gen_pressed = st.button("🎙️ Generate Voiceovers")
+            gen_pressed = st.button("🎙️ Generate Voiceovers", key="gen_voice_btn")
         with col2:
-            clear_pressed = st.button("🗑️ Clear Voiceovers")
+            clear_pressed = st.button("🗑️ Clear Voiceovers", key="clear_voice_btn")
+
+        # Always show debug info if present
+        debug_msgs = st.session_state.get("voiceover_debug_msgs", [])
+        if debug_msgs:
+            st.info("\n".join(debug_msgs))
 
         if clear_pressed:
             st.session_state.pop("voiceover_local_buffers", None)
             st.session_state.pop("voiceover_local_approved", None)
+            st.session_state.pop("voiceover_debug_msgs", None)
             st.info("Voiceover previews cleared.")
 
         if gen_pressed:
@@ -142,13 +148,13 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 except Exception as e:
                     st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
                     debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
-            if debug_msgs:
-                st.info("\n".join(debug_msgs))
+            st.session_state["voiceover_debug_msgs"] = debug_msgs
             if audio_buffers:
                 st.session_state["voiceover_local_buffers"] = audio_buffers
                 st.session_state["voiceover_local_approved"] = False
             else:
                 st.warning("No audio buffers were generated. Please check your script and try again.")
+                st.session_state.pop("voiceover_local_buffers", None)
 
         audio_buffers = st.session_state.get("voiceover_local_buffers")
         if audio_buffers:
@@ -165,7 +171,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 except Exception as e:
                     st.warning(f"Could not load audio for download: {e}")
             if not st.session_state.get("voiceover_local_approved"):
-                if st.button("✅ Approve Voiceovers"):
+                if st.button("✅ Approve Voiceovers", key="approve_voice_btn"):
                     st.session_state["voiceover_local_approved"] = True
                     st.success("Voiceovers approved!")
             else:

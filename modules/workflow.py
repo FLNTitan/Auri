@@ -98,6 +98,11 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         if not parsed_script:
             st.error("❌ No parsed script found. Please generate a script first.")
             return
+        scenes = parsed_script.get("scenes")
+        if not scenes or not isinstance(scenes, list):
+            st.error("❌ No scenes found in parsed script. Please check your script generation step.")
+            st.info(f"[DEBUG] parsed_script: {parsed_script}")
+            return
 
         import io
         from gtts import gTTS
@@ -120,11 +125,12 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             st.info(f"Current working directory: {os.getcwd()}")
             audio_buffers = []
             debug_msgs = []
-            for scene_idx, scene in enumerate(parsed_script["scenes"]):
-                narration_text = scene["text"]
-                if not narration_text.strip():
-                    continue
+            for scene_idx, scene in enumerate(scenes):
+                narration_text = scene.get("text", "")
                 st.write(f"[DEBUG] Scene {scene_idx}: narration_text='{narration_text[:60]}...'")
+                if not narration_text or not narration_text.strip():
+                    debug_msgs.append(f"[SKIP] Scene {scene_idx} has empty text.")
+                    continue
                 try:
                     st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
                     tts = gTTS(narration_text, lang='en')
@@ -141,6 +147,8 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             if audio_buffers:
                 st.session_state["voiceover_local_buffers"] = audio_buffers
                 st.session_state["voiceover_local_approved"] = False
+            else:
+                st.warning("No audio buffers were generated. Please check your script and try again.")
 
         audio_buffers = st.session_state.get("voiceover_local_buffers")
         if audio_buffers:
@@ -162,6 +170,8 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                     st.success("Voiceovers approved!")
             else:
                 st.success("Voiceovers approved!")
+        else:
+            st.info("No voiceover previews available. Click 'Generate Voiceovers' to create them.")
         return
 
     def handle_caption_hashtag_step():

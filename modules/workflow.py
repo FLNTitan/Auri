@@ -152,6 +152,20 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 except Exception as e:
                     st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
                     debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
+                    # Fallback: generate a dummy audio buffer so preview UI always appears
+                    import wave
+                    import struct
+                    dummy_buf = io.BytesIO()
+                    with wave.open(dummy_buf, 'wb') as wf:
+                        wf.setnchannels(1)
+                        wf.setsampwidth(2)
+                        wf.setframerate(22050)
+                        # 0.5 seconds of silence
+                        frames = b''.join([struct.pack('<h', 0) for _ in range(11025)])
+                        wf.writeframes(frames)
+                    dummy_buf.seek(0)
+                    audio_buffers.append(dummy_buf)
+                    debug_msgs.append(f"✅ Dummy audio generated for scene {scene_idx}")
             st.session_state["voiceover_debug_msgs"] = debug_msgs
             if not valid_narration:
                 st.error("❌ None of your scenes have valid narration text. Please check your script step and ensure each scene has a 'text' field with narration.")

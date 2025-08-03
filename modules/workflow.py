@@ -99,14 +99,17 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             st.error("❌ No parsed script found. Please generate a script first.")
             return
 
-        # Session state keys
+        # Local state for this run only
         gen_key = f"voiceover_generated_{step_key}"
         approve_key = f"voiceover_approved_{step_key}"
         audio_files_key = f"voiceover_files_{step_key}"
+        if "voiceover_local_buffers" not in st.session_state:
+            st.session_state["voiceover_local_buffers"] = None
+        if "voiceover_local_approved" not in st.session_state:
+            st.session_state["voiceover_local_approved"] = False
 
         def do_generate():
             import io
-            from modules.tts import generate_voiceover_fallback
             from gtts import gTTS
             st.warning("[DEBUG] do_generate CALLED")
             audio_buffers = []
@@ -129,12 +132,10 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                     st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
                     debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
             if audio_buffers:
-                st.session_state[audio_files_key] = audio_buffers
-                st.session_state[gen_key] = True
-                st.session_state[approve_key] = False
-                st.session_state["auri_context"]["voiceover_files"] = [f"scene_{i}.mp3" for i in range(len(audio_buffers))]
-                st.session_state["executed_steps"][step_key] = f"{len(audio_buffers)} voiceover files generated."
-                st.session_state["auri_context"]["step_outputs"][step_key] = st.session_state["executed_steps"][step_key]
+                st.session_state["voiceover_local_buffers"] = audio_buffers
+                st.session_state["voiceover_local_approved"] = False
+            else:
+                st.session_state["voiceover_local_buffers"] = None
             # Show debug info
             if debug_msgs:
                 st.info("\n".join(debug_msgs))
@@ -148,8 +149,8 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             st.warning("[DEBUG] Regenerate button pressed")
             do_generate()
 
-        # Only show generate button if never generated
-        if not st.session_state.get(gen_key):
+        # Only show generate button if never generated or if local buffers are empty
+        if st.session_state.get("voiceover_local_buffers") is None:
             st.warning("[DEBUG] About to render Generate button")
             gen_pressed = st.button("🎙️ Generate Voiceovers")
             st.warning(f"[DEBUG] Generate button value: {gen_pressed}")
@@ -158,9 +159,9 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 do_generate()
 
         # Show audio and approve button if generated
-        if st.session_state.get(gen_key):
+        if st.session_state.get("voiceover_local_buffers"):
             import base64
-            audio_buffers = st.session_state.get(audio_files_key, [])
+            audio_buffers = st.session_state["voiceover_local_buffers"]
             st.markdown("### 🎧 Preview Voiceovers")
             for i, buf in enumerate(audio_buffers):
                 st.markdown(f"**Scene {i+1}:**")
@@ -174,9 +175,9 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                     st.markdown(href, unsafe_allow_html=True)
                 except Exception as e:
                     st.warning(f"Could not load audio for download: {e}")
-            if not st.session_state.get(approve_key):
+            if not st.session_state.get("voiceover_local_approved"):
                 if st.button("✅ Approve Voiceovers"):
-                    st.session_state[approve_key] = True
+                    st.session_state["voiceover_local_approved"] = True
                     st.success("Voiceovers approved!")
             else:
                 st.success("Voiceovers approved!")

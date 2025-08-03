@@ -2,7 +2,7 @@ from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
 from modules.video import detect_video_ideas, analyze_script, determine_workflow, clean_label
-from modules.tts import generate_voiceover_fallback as generate_voiceover_coqui
+from modules.tts import generate_voiceover_fallback
 import re
 import streamlit as st
 
@@ -91,7 +91,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         return
 
     def handle_voiceover_step():
-        from modules.tts import generate_voiceover_coqui
+        from modules.tts import generate_voiceover_fallback
         parsed_script = st.session_state["auri_context"].get("parsed_script")
         if not parsed_script:
             st.error("❌ No parsed script found. Please generate a script first.")
@@ -102,9 +102,9 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                 narration_text = scene["text"]
                 if not narration_text.strip():
                     continue
-                output_path = f"voiceover_scene_{scene_idx}.wav"
+                output_path = f"voiceover_scene_{scene_idx}.mp3"
                 try:
-                    generate_voiceover_coqui(narration_text, output_path)
+                    generate_voiceover_fallback(narration_text, output_path)
                     st.audio(output_path)
                     audio_files.append(output_path)
                 except Exception as e:

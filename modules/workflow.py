@@ -103,62 +103,46 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         from gtts import gTTS
         import base64
         st.warning("[DEBUG] handle_voiceover_step CALLED")
-        if "voiceover_audio_buffers" not in st.session_state:
-            st.session_state["voiceover_audio_buffers"] = None
-        if "voiceover_approved" not in st.session_state:
-            st.session_state["voiceover_approved"] = False
-
-        if st.session_state["voiceover_audio_buffers"] is None:
-            st.warning("[DEBUG] About to render Generate button")
-            gen_pressed = st.button("🎙️ Generate Voiceovers")
-            st.warning(f"[DEBUG] Generate button value: {gen_pressed}")
-            if gen_pressed:
-                st.warning("[DEBUG] Generate button pressed")
-                local_audio_buffers = []
-                debug_msgs = []
-                st.info(f"Current working directory: {os.getcwd()}")
-                for scene_idx, scene in enumerate(parsed_script["scenes"]):
-                    narration_text = scene["text"]
-                    if not narration_text.strip():
-                        continue
-                    st.write(f"[DEBUG] Scene {scene_idx}: narration_text='{narration_text[:60]}...'" )
-                    try:
-                        st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
-                        tts = gTTS(narration_text, lang='en')
-                        buf = io.BytesIO()
-                        tts.write_to_fp(buf)
-                        buf.seek(0)
-                        local_audio_buffers.append(buf)
-                        debug_msgs.append(f"✅ In-memory audio generated for scene {scene_idx}")
-                    except Exception as e:
-                        st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
-                        debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
-                if debug_msgs:
-                    st.info("\n".join(debug_msgs))
-                st.session_state["voiceover_audio_buffers"] = local_audio_buffers
-                st.session_state["voiceover_approved"] = False
-                st.experimental_rerun()
-        else:
-            st.markdown("### 🎧 Preview Voiceovers")
-            audio_buffers = st.session_state["voiceover_audio_buffers"]
-            for i, buf in enumerate(audio_buffers):
-                st.markdown(f"**Scene {i+1}:**")
-                st.audio(buf, format='audio/mp3')
-                # Add download button
+        gen_pressed = st.button("🎙️ Generate Voiceovers")
+        audio_buffers = []
+        debug_msgs = []
+        if gen_pressed:
+            st.warning("[DEBUG] Generate button pressed")
+            st.info(f"Current working directory: {os.getcwd()}")
+            for scene_idx, scene in enumerate(parsed_script["scenes"]):
+                narration_text = scene["text"]
+                if not narration_text.strip():
+                    continue
+                st.write(f"[DEBUG] Scene {scene_idx}: narration_text='{narration_text[:60]}...'" )
                 try:
+                    st.write(f"[DEBUG] Generating voiceover in-memory for scene {scene_idx}")
+                    tts = gTTS(narration_text, lang='en')
+                    buf = io.BytesIO()
+                    tts.write_to_fp(buf)
                     buf.seek(0)
-                    audio_bytes = buf.read()
-                    b64 = base64.b64encode(audio_bytes).decode()
-                    href = f'<a href="data:audio/mp3;base64,{b64}" download="scene_{i+1}.mp3">⬇️ Download</a>'
-                    st.markdown(href, unsafe_allow_html=True)
+                    audio_buffers.append(buf)
+                    debug_msgs.append(f"✅ In-memory audio generated for scene {scene_idx}")
                 except Exception as e:
-                    st.warning(f"Could not load audio for download: {e}")
-            if not st.session_state["voiceover_approved"]:
+                    st.error(f"❌ Error generating voiceover for scene {scene_idx}: {e}")
+                    debug_msgs.append(f"❌ Exception for scene {scene_idx}: {e}")
+            if debug_msgs:
+                st.info("\n".join(debug_msgs))
+            if audio_buffers:
+                st.markdown("### 🎧 Preview Voiceovers")
+                for i, buf in enumerate(audio_buffers):
+                    st.markdown(f"**Scene {i+1}:**")
+                    st.audio(buf, format='audio/mp3')
+                    # Add download button
+                    try:
+                        buf.seek(0)
+                        audio_bytes = buf.read()
+                        b64 = base64.b64encode(audio_bytes).decode()
+                        href = f'<a href="data:audio/mp3;base64,{b64}" download="scene_{i+1}.mp3">⬇️ Download</a>'
+                        st.markdown(href, unsafe_allow_html=True)
+                    except Exception as e:
+                        st.warning(f"Could not load audio for download: {e}")
                 if st.button("✅ Approve Voiceovers"):
-                    st.session_state["voiceover_approved"] = True
                     st.success("Voiceovers approved!")
-            else:
-                st.success("Voiceovers approved!")
         return
 
         # Show audio and approve button if generated

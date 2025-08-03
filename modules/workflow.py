@@ -93,6 +93,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
     def handle_voiceover_step():
         from modules.tts import generate_voiceover_fallback
         import os
+        st.warning("[DEBUG] handle_voiceover_step CALLED")
         parsed_script = st.session_state["auri_context"].get("parsed_script")
         if not parsed_script:
             st.error("❌ No parsed script found. Please generate a script first.")
@@ -104,6 +105,7 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
         audio_files_key = f"voiceover_files_{step_key}"
 
         def do_generate():
+            st.warning("[DEBUG] do_generate CALLED")
             audio_files = []
             debug_msgs = []
             st.info(f"Current working directory: {os.getcwd()}")
@@ -138,13 +140,16 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
             if debug_msgs:
                 st.info("\n".join(debug_msgs))
 
+        st.warning("[DEBUG] Before Regenerate/Generate button logic")
         # Regenerate button
         if st.button("🔄 Regenerate Voiceovers"):
+            st.warning("[DEBUG] Regenerate button pressed")
             do_generate()
 
         # Only show generate button if never generated
         if not st.session_state.get(gen_key):
             if st.button("🎙️ Generate Voiceovers"):
+                st.warning("[DEBUG] Generate button pressed")
                 do_generate()
 
         # Show audio and approve button if generated

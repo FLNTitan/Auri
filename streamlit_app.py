@@ -409,9 +409,16 @@ if section == "🧠 Content Ideas":
                         language=language
                     )
 
-                elif input_ready and step_key not in st.session_state["executed_steps"] and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
-                    with st.spinner("Running..."):
-                        handle_step_execution(idx, step, input_val, uploaded_file, full_prompt)
+                # elif input_ready and step_key not in st.session_state["executed_steps"] and st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+                #     with st.spinner("Running..."):
+                #         handle_step_execution(idx, step, input_val, uploaded_file, full_prompt)
+                elif input_ready and step_key not in st.session_state["executed_steps"]:
+                    if st.button(f"▶ Run Step {idx}", key=f"run_step_{idx}"):
+                        st.session_state["auri_active_step"] = step_key
+                        st.rerun()
+                    elif st.session_state.get("auri_active_step") == step_key:
+                        with st.spinner("Running..."):
+                            handle_step_execution(idx, step, input_val, uploaded_file, full_prompt)
 
         # Only rerun if this step alters future steps (like Script or Ideation)
         if any(word in step["title"].lower() for word in ["script", "idea", "repurpose"]):

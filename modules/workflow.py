@@ -227,8 +227,12 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
                         st.success("Voiceovers approved!")
                 else:
                     st.success("Voiceovers approved!")
-            else:
-                st.info("No voiceover previews available. Click 'Generate Voiceovers' to create them.")
+                    
+                # ✅ Now safe to mark step as complete
+                if not st.session_state.get("executed_steps", {}).get(step_key):
+                    st.session_state["executed_steps"][step_key] = f"{len(audio_buffers)} voiceovers generated and previewed."
+                    st.session_state["auri_context"]["step_outputs"][step_key] = st.session_state["executed_steps"][step_key]
+
             return
         except Exception as top_fatal:
             st.error(f"[FATAL ERROR] Exception in handle_voiceover_step: {top_fatal}")

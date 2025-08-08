@@ -8,6 +8,139 @@ from openai import OpenAI
 import re
 from PIL import Image
 
+# --- HYBRID UI HELPERS -------------------------------------------------------
+import re
+from typing import List, Dict
+
+CARD_CSS = """
+<style>
+.idea-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+.idea-card { background:#fff; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); padding:16px; }
+.idea-meta { display:flex; gap:8px; flex-wrap:wrap; font-size:0.85rem; color:#4b5563; }
+.badge { background:#F3F4F6; padding:4px 8px; border-radius:999px; }
+.sticky-bar { position:sticky; top:0; z-index:10; background:#F4F7FA; padding:8px 0 12px 0; }
+.compact p { margin: 0 0 6px 0; }
+</style>
+"""
+
+st.markdown(CARD_CSS, unsafe_allow_html=True)
+
+def _split_ideas(md: str) -> List[Dict[str, str]]:
+    """
+    Very forgiving parser:
+    - Splits on 'Idea X:' headers or horizontal rules.
+    - Pulls out Title, Goal, Hook, and the '📜 Full Script Breakdown' block.
+    - Leaves other content intact to show in tabs.
+    """
+    if not md or not isinstance(md, str):
+        return []
+
+    # Normalize separators
+    blocks = re.split(r'(?:^|\n)#{0,3}\s*Idea\s+\d+:|(?:\n+-{3,}\n+)', md, flags=re.I)
+    # If the model didn’t label “Idea n:”, try to split by repeated “📜 Full Script Breakdown”
+    if len(blocks) <= 1:
+        blocks = re.split(r'\n(?=📜 Full Script Breakdown)', md)
+
+    ideas = []
+    for raw in blocks:
+        chunk = raw.strip()
+        if not chunk:
+            continue
+
+        # Title
+        title_match = re.search(r'(?mi)^[“"]?(.+?)["”]?\s*$|^🎬\s*Title\s*\n+(.+?)\n', chunk)
+        title = ""
+        if title_match:
+            title = title_match.group(1) or title_match.group(2) or ""
+            title = title.strip().strip('"“”')
+
+        # Goal
+        goal_match = re.search(r'(?s)🎯\s*Goal\s*\n+(.+?)(?:\n[#🧲📜🎤🛠⏱]|$)', chunk)
+        goal = (goal_match.group(1).strip() if goal_match else "").strip()
+
+        # Hook
+        hook_match = re.search(r'(?s)🧲\s*Hook\s*\n+(.+?)(?:\n[#📜🎤🛠⏱]|$)', chunk)
+        hook = (hook_match.group(1).strip() if hook_match else "").strip()
+
+        # Full Script
+        script_match = re.search(r'(?s)📜\s*Full Script Breakdown\s*\n+(.+?)(?:\n[#🎤🛠⏱]|$)', chunk)
+        script_md = (script_match.group(1).strip() if script_match else "").strip()
+
+        # Captions/Hashtags (if you later pipe them in, we’ll render here)
+        # For now, empty — tab will show a hint.
+        ideas.append({
+            "title": title or "Untitled idea",
+            "goal": goal,
+            "hook": hook,
+            "script_md": script_md or chunk,  # fallback so nothing is lost
+            "raw": chunk
+        })
+    return ideas
+
+def _render_idea_card(i: int, data: Dict[str, str], caphash: Dict[str, str] | None = None):
+    with st.container():
+        st.markdown('<div class="idea-card">', unsafe_allow_html=True)
+        st.markdown(f"**Idea {i}** — {data['title']}")
+        meta = []
+        if data["goal"]: meta.append(f'<span class="badge">🎯 {data["goal"]}</span>')
+        if data["hook"]: meta.append(f'<span class="badge">🧲 {data["hook"]}</span>')
+        st.markdown(f'<div class="idea-meta">{"".join(meta)}</div>', unsafe_allow_html=True)
+
+        # Tabs
+        tabs = st.tabs(["Script", "Captions & Hashtags", "Assets"])
+        with tabs[0]:
+            st.markdown("##### Script", help="Time-coded steps, shots, lighting, text, etc.")
+            st.markdown(data["script_md"] or data["raw"])
+
+        with tabs[1]:
+            st.markdown("##### Captions & Hashtags")
+            if caphash and caphash.get("caption") or caphash and caphash.get("hashtags"):
+                if caphash.get("caption"):
+                    st.markdown("**Caption**")
+                    st.code(caphash["caption"], language="markdown")
+                if caphash.get("hashtags"):
+                    st.markdown("**Hashtags**")
+                    st.markdown(caphash["hashtags"])
+            else:
+                st.info("Generate this after scripts with the ‘Captions/Hashtags’ step to see them here.")
+
+        with tabs[2]:
+            st.markdown("##### Assets")
+            st.caption("Thumbnails, TTS previews, file links… (populated by later steps)")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+def render_hybrid_output(md: str, caphash_per_idea: List[Dict[str, str]] | None = None):
+    """
+    Renders a sticky ‘view controls’ bar + responsive card grid.
+    caphash_per_idea is optional list aligned by idea index: {caption, hashtags}.
+    """
+    ideas = _split_ideas(md)
+    st.markdown('<div class="sticky-bar">', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1.2, 1, 1])
+    with col1:
+        view = st.radio("View", ["Cards", "Raw"], horizontal=True, label_visibility="collapsed")
+    with col2:
+        expand = st.checkbox("Expand all", value=False)
+    with col3:
+        compact = st.checkbox("Compact text", value=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if view == "Raw":
+        st.markdown(md)
+        return
+
+    st.markdown('<div class="idea-grid">', unsafe_allow_html=True)
+    for idx, idea in enumerate(ideas, start=1):
+        _render_idea_card(idx, idea, (caphash_per_idea or [None]*len(ideas))[idx-1] if caphash_per_idea else None)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Optional compact CSS toggle
+    if compact:
+        st.markdown('<div class="compact"></div>', unsafe_allow_html=True)
+# --- END HYBRID UI HELPERS ----------------------------------------------------
+
+
 TEXT = {
     "English": {
         "nav": ["🧠 Content Ideas", "🎨 Editing Studio", "🗖️ Posting & Scheduling", "📊 Analytics"],
@@ -331,76 +464,183 @@ if section == "🧠 Content Ideas":
                 if step_key in st.session_state["executed_steps"]:
                     result = st.session_state["executed_steps"][step_key]
 
-                    if isinstance(result, str) and result.strip():
-                        st.markdown("#### ✅ Auri’s Output")
-                        st.markdown(result)
+                # === Hybrid card UI for Step 2 (Script Writing) ===
+                if isinstance(result, str) and result.strip():
+                    st.markdown("#### ✅ Auri’s Output")
 
-                        if (
-                            step["title"].lower().startswith("script")
-                            and "parsed_script" in st.session_state["auri_context"]
-                            and "planned_footage" in st.session_state["auri_context"]
-                        ):
-                            with st.expander("🎞️ Click to Review and Upload Scene Footage"):
-                                # Initialize dict if missing
-                                if "scene_selections" not in st.session_state["auri_context"]:
-                                    st.session_state["auri_context"]["scene_selections"] = {}
+                    # --- Helpers (local to this block) ---
+                    import re
+                    from modules.video import analyze_script, plan_footage, clean_label, build_assembly_plan
 
-                                for scene in st.session_state["auri_context"]["planned_footage"]:
-                                    st.markdown(f"#### 🎬 Scene {scene['scene_index'] + 1}: {scene['visual']}")
+                    def split_into_ideas(markdown_text: str) -> list[tuple[str, str]]:
+                        """
+                        Returns list of (idea_id, idea_md) chunks.
+                        Handles outputs with 'Idea X:' headings or '---' dividers.
+                        """
+                        # Normalize line endings
+                        text = markdown_text.strip()
 
-                                    # ✅ What Auri will do
-                                    st.caption("🤖 **I will...**")
-                                    st.markdown(
-                                        f"- Combine this scene into your final video.\n"
-                                        f"- Add on-screen text: **{scene['onscreen_text'] or '—'}**.\n"
-                                        f"- Overlay music: **{scene['music'] or '—'}**.\n"
-                                        f"- Apply transition: **{scene['transition'] or '—'}**."
+                        # Prefer explicit "Idea N:" sections
+                        idea_blocks = re.split(r'\n(?=Idea\s+\d+\s*:)', text, flags=re.I)
+                        if len(idea_blocks) > 1:
+                            out = []
+                            for block in idea_blocks:
+                                m = re.match(r'^(Idea\s+\d+\s*:.*?)\n', block.strip(), flags=re.I)
+                                idea_id = m.group(1) if m else f"Idea {len(out)+1}"
+                                out.append((idea_id, block.strip()))
+                            return out
+
+                        # Fallback: split by long markdown divider
+                        parts = re.split(r'\n-{3,}\n', text)
+                        return [(f"Idea {i+1}", p.strip()) for i, p in enumerate(parts) if p.strip()]
+
+                    def extract_field(md: str, label: str) -> str:
+                        """
+                        Get the line right after a label header (e.g., '🎬 Title', '🧲 Hook').
+                        """
+                        # Find the label line, then the next non-empty line
+                        pattern = rf'{re.escape(label)}\s*\n(.*)'
+                        m = re.search(pattern, md)
+                        if m:
+                            line = m.group(1).strip()
+                            # Strip quotes like "..."
+                            return line.strip('“”"').strip()
+                        return ""
+
+                    def normalize_scenes(parsed: dict) -> dict:
+                        """
+                        Post-clean scene fields like the previous code did.
+                        """
+                        for scene in parsed.get("scenes", []):
+                            if scene.get("camera"):
+                                scene["camera"] = re.sub(r"^Camera direction:\s*", "", scene["camera"], flags=re.I).strip('" ')
+                            if scene.get("lighting"):
+                                scene["lighting"] = re.sub(r"^Lighting suggestion:\s*", "", scene["lighting"], flags=re.I).strip('" ')
+                            if scene.get("music"):
+                                scene["music"] = re.sub(r"^Music style suggestion:\s*", "", scene["music"], flags=re.I).strip('" ')
+                            if scene.get("transition"):
+                                scene["transition"] = re.sub(r"^Transition:\s*", "", scene["transition"], flags=re.I).strip('" ')
+                            if scene.get("onscreen_text"):
+                                scene["onscreen_text"] = re.sub(r"^On-screen text:\s*", "", scene["onscreen_text"], flags=re.I).strip('" ')
+                        return parsed
+
+                    # Keep per‑idea data in session
+                    if "ideas_data" not in st.session_state["auri_context"]:
+                        st.session_state["auri_context"]["ideas_data"] = {}
+
+                    ideas = split_into_ideas(result)
+
+                    # --- Compact list of idea cards ---
+                    for idx, (idea_id, idea_md) in enumerate(ideas, start=1):
+                        idea_key = f"idea_{idx}"
+                        idea_store = st.session_state["auri_context"]["ideas_data"].setdefault(idea_key, {})
+
+                        # Extract small header bits
+                        title = extract_field(idea_md, "🎬 Title") or f"Idea {idx}"
+                        hook = extract_field(idea_md, "🧲 Hook")
+
+                        # Card UI (minimal CSS via markdown)
+                        st.markdown(
+                            f"""
+                            <div style="
+                                background:#fff;border:1px solid #ECEFF3;border-radius:16px;
+                                padding:16px 18px;margin:14px 0;box-shadow:0 4px 12px rgba(0,0,0,0.04);
+                            ">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                                <div>
+                                <div style="font-weight:700;font-size:1.05rem;line-height:1.3;">{title}</div>
+                                <div style="color:#6B7280;font-size:0.95rem;margin-top:2px;">{hook or ''}</div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                        with st.expander("📜 View script details & scene setup", expanded=False):
+                            # Show a concise script preview (not the whole giant thing)
+                            # Keep only the breakdown section to reduce noise if present
+                            preview = idea_md
+                            st.markdown(preview)
+
+                            # Parse -> scenes
+                            parsed = analyze_script(idea_md)
+                            parsed = normalize_scenes(parsed)
+                            idea_store["parsed_script"] = parsed
+
+                            # Plan footage
+                            planned = plan_footage(parsed.get("scenes", []))
+                            for item in planned:
+                                if item.get("visual"):
+                                    item["visual"] = clean_label(item["visual"], "Camera direction:")
+                            idea_store["planned_footage"] = planned
+
+                            # Init per-scene selections storage
+                            if "scene_selections" not in idea_store:
+                                idea_store["scene_selections"] = {}
+
+                            st.markdown("### 🎞️ Scenes")
+                            if not planned:
+                                st.info("No scenes detected yet. Try regenerating or simplifying the script format.")
+                            else:
+                                for scene in planned:
+                                    s_idx = scene["scene_index"]
+                                    s_key = f"{idea_key}_scene_{s_idx}"
+                                    idea_store["scene_selections"].setdefault(f"scene_{s_idx}", {})
+
+                                    st.markdown(f"**Scene {s_idx+1}** — {scene['visual'] or '—'}")
+                                    cols = st.columns([1, 1, 1, 1])
+                                    with cols[0]:
+                                        st.caption(f"🖼 Text: {scene.get('onscreen_text') or '—'}")
+                                    with cols[1]:
+                                        st.caption(f"🎶 Music: {scene.get('music') or '—'}")
+                                    with cols[2]:
+                                        st.caption(f"🔄 Transition: {scene.get('transition') or '—'}")
+                                    with cols[3]:
+                                        need_upload = scene.get("requires_user_upload", False)
+                                        st.caption("📦 Source: " + ("User upload" if need_upload else "Stock OK"))
+
+                                    # Selection controls
+                                    use_stock_default = not scene.get("requires_user_upload", False)
+                                    use_stock = st.checkbox(
+                                        "Use Stock Footage",
+                                        key=f"{s_key}_use_stock",
+                                        value=idea_store["scene_selections"][f"scene_{s_idx}"].get("use_stock", use_stock_default),
                                     )
+                                    idea_store["scene_selections"][f"scene_{s_idx}"]["use_stock"] = use_stock
 
-                                    # ✅ What Auri needs from the user
-                                    st.caption("📥 **To do that, I need you to...**")
-                                    if scene["requires_user_upload"]:
-                                        st.warning("📸 Please upload your own footage for this scene to make it personal and authentic.")
-                                        default_use_stock = False
-                                    else:
-                                        st.info("🎬 You can use stock footage or upload your own clip.")
-                                        default_use_stock = True
+                                    upload = st.file_uploader("📤 Upload your clip", key=f"{s_key}_upload", type=["mp4", "mov", "m4v", "avi"])
+                                    if upload:
+                                        # We only store filename in selections to avoid holding the file in RAM here
+                                        idea_store["scene_selections"][f"scene_{s_idx}"]["filename"] = upload.name
+                                        st.success(f"Attached: {upload.name}")
+                                    st.divider()
 
-                                    st.checkbox(
-                                        "✅ Use Stock Footage",
-                                        key=f"use_stock_{scene['scene_index']}",
-                                        value=default_use_stock
-                                    )
-                                    st.file_uploader(
-                                        "📤 Upload your clip",
-                                        key=f"upload_scene_{scene['scene_index']}"
-                                    )
-
-                                    st.markdown("---")
-
-                                st.subheader("🎬 Final Assembly Plan")
-
+                            # Build plan
+                            st.subheader("🎬 Assembly Plan")
                             assembly_plan = build_assembly_plan(
-                                st.session_state["auri_context"]["planned_footage"],
-                                st.session_state["auri_context"]["scene_selections"]
+                                idea_store.get("planned_footage", []),
+                                idea_store.get("scene_selections", {}),
                             )
+                            idea_store["assembly_plan"] = assembly_plan
 
                             for item in assembly_plan:
-                                st.markdown(f"""
-                                    **Scene {item['scene_index'] + 1}**
-                                    - ✅ Using: {"Stock Footage" if item['use_stock'] else "User Upload" if item['filename'] else "❌ Not selected"}
-                                    - 🎥 Visual: {item['visual']}
-                                    - 🖼 On-screen Text: {item['onscreen_text'] or "—"}
-                                    - 🎶 Music: {item['music'] or "—"}
-                                    - 🔄 Transition: {item['transition'] or "—"}
-                                    """)
-                                if not item["use_stock"] and not item["filename"]:
-                                    st.error("⚠️ This scene is missing footage!")
-                            st.markdown("---")
+                                st.markdown(
+                                    f"""
+                                    - **Scene {item['scene_index']+1}** → {"Stock" if item.get("use_stock") else ("User Upload" if item.get("filename") else "❌ Not selected")}
+                                    - 🎥 {item.get('visual') or '—'}
+                                    - 🖼 {item.get('onscreen_text') or '—'}
+                                    - 🎶 {item.get('music') or '—'}
+                                    - 🔄 {item.get('transition') or '—'}
+                                    """
+                                )
+                                if not item.get("use_stock") and not item.get("filename"):
+                                    st.error("Missing footage for this scene.")
 
-                            if st.button("🎥 Generate Final Video"):
-                                st.session_state["auri_context"]["assembly_plan"] = assembly_plan
-                                st.success("✅ Assembly plan saved! (Rendering logic not yet implemented.)")
+                            st.info("✅ Plan saved to session state. You can generate voiceover/assembly in the next steps.")
+
+                        # Close card
+                        st.markdown("</div>", unsafe_allow_html=True)
+
 
                     show_feedback_controls(
                         step_key=step_key,

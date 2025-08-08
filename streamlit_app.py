@@ -800,14 +800,14 @@ elif section == "🎨 Editing Studio":
             )
             st.image(output_path, caption="Your Thumbnail is Ready!")
 
-            # Store metadata
             st.session_state["auri_context"]["step_outputs"]["thumbnail"] = {
                 "source": "uploaded" if uploaded_file else "AI",
                 "title": title,
                 "subtitle": subtitle,
-                "script_used": script_text,
-                "hashtags_used": hashtags
+                "script_used": script_text,   # now always defined
+                "hashtags_used": hashtags     # now always defined
             }
+
 elif section == "🗖️ Posting & Scheduling":
     st.markdown("## 🗖️ Posting & Scheduling")
     st.info("Plan and schedule your content visually.")

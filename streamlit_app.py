@@ -707,11 +707,15 @@ elif section == "🎨 Editing Studio":
     # 1️⃣ Retrieve previous outputs
     # ----------------------------
     step_outputs = st.session_state.get("auri_context", {}).get("step_outputs", {})
-    default_title = (
-        step_outputs.get("step_2", "").split("\n")[0]
-        if step_outputs.get("step_2")
-        else "Your Title Here"
-    )
+
+    # Pull the previous script + hashtags once, so they're always defined
+    script_text = step_outputs.get("step_2", "") or ""
+    hashtags = step_outputs.get("step_3", "") or ""
+
+    # Use them for defaults
+    default_title = script_text.split("\n")[0] if script_text else "Your Title Here"
+    default_subtitle = hashtags
+
     default_subtitle = step_outputs.get("step_3", "") or ""
 
     platform = st.selectbox("📱 Select platform", ["YouTube", "TikTok", "Instagram", "LinkedIn"])

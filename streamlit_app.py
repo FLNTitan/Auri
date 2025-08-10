@@ -462,10 +462,15 @@ if section == "🧠 Content Ideas":
                 st.session_state["auri_context"]["step_titles"][step_key] = step["title"]
 
                 if step_key in st.session_state["executed_steps"]:
+
                     result = st.session_state["executed_steps"][step_key]
 
-                    # === Hybrid card UI for Step 2 (Script Writing) ===
-                    if isinstance(result, str) and result.strip():
+                    # Only show the card UI for the scripting step
+                    if (
+                        isinstance(result, str)
+                        and result.strip()
+                        and "script" in step["title"].lower()
+                    ):
                         st.markdown("#### ✅ Auri’s Output")
 
                         # --- Helpers (local to this block) ---

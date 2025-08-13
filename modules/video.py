@@ -1,6 +1,5 @@
 import re
 
-
 def clean_label(text, prefix):
     """Remove a prefix label and extra quotes/spaces."""
     return re.sub(
@@ -15,58 +14,52 @@ def detect_video_ideas(ideas: list[str]) -> bool:
     return any(any(kw in idea.lower() for kw in video_keywords) for idea in ideas)
 
 def script_contains_time_ranges(script_text: str) -> bool:
-    return bool(re.search(r'\d+s\s*–\s*\d+s', script_text))
+    # Allow both hyphen and en‑dash and optional spaces
+    return bool(re.search(r'\d+s\s*[–-]\s*\d+s', script_text))
 
 def determine_workflow(script_text: str) -> dict:
     needs_video = script_contains_time_ranges(script_text)
     needs_voiceover = needs_video
     needs_thumbnail = needs_video
-
     return {
         "needs_video": needs_video,
         "needs_voiceover": needs_voiceover,
-        "needs_thumbnail": needs_thumbnail
+        "needs_thumbnail": needs_thumbnail,
     }
-
 
 def analyze_script(script_text: str) -> dict:
     lines = script_text.splitlines()
-    
     result = {
         "title": "",
         "goal": "",
         "delivery_notes": "",
         "equipment": "",
         "duration": "",
-        "scenes": []
+        "scenes": [],
     }
-    
     current_scene = None
-
     # Compile regexes
-    time_range_re = re.compile(r'(\d+)s[–-](\d+)s')
-    narration_re = re.compile(r'^✅\s*["“](.*?)["”]$')
-    camera_re = re.compile(r'🎥\s*(.*)', re.IGNORECASE)
-    lighting_re = re.compile(r'💡\s*(.*)', re.IGNORECASE)
-    music_re = re.compile(r'🎶\s*(.*)', re.IGNORECASE)
-    transition_re = re.compile(r'🔄\s*(.*)', re.IGNORECASE)
-    onscreen_re = re.compile(r'🖼\s*(.*)', re.IGNORECASE)
+    time_range_re = re.compile(r'(\d+)s\s*[–-]\s*(\d+)s')
+    # Allow optional checkmark and quotes around narration lines
+    narration_re = re.compile(r'^\s*✅?\s*["“]?(.*?)["”]?\s*$')
+    camera_re = re.compile(r'\s*(.*)', re.IGNORECASE)
+    lighting_re = re.compile(r'\s*(.*)', re.IGNORECASE)
+    music_re = re.compile(r'\s*(.*)', re.IGNORECASE)
+    transition_re = re.compile(r'\s*(.*)', re.IGNORECASE)
+    onscreen_re = re.compile(r'\s*(.*)', re.IGNORECASE)
 
     for line in lines:
         line = line.strip()
         if not line:
             continue
-        
         # Check for scene start
         match = time_range_re.search(line)
         if match:
             # Save previous scene
             if current_scene:
                 result["scenes"].append(current_scene)
-            
             start_seconds = int(match.group(1))
             end_seconds = int(match.group(2))
-
             current_scene = {
                 "start": f"{start_seconds}s",
                 "end": f"{end_seconds}s",
@@ -77,16 +70,18 @@ def analyze_script(script_text: str) -> dict:
                 "lighting": "",
                 "music": "",
                 "transition": "",
-                "onscreen_text": ""
+                "onscreen_text": "",
             }
-            # Try to extract text after time range
-            parts = line.split(match.group(0))
-            if len(parts) > 1:
-                current_scene["text"] = parts[1].strip("–—: ").strip("✅").strip('" ')
+            # Extract any narration text that appears on the same line after the time range
+            # Remove leading symbols like checkmarks, dashes or colons and strip quotes
+            remaining = line[match.end():].strip(" –—:-").lstrip('✅').strip(' \"“”')
+            if remaining:
+                current_scene["text"] = remaining
             continue
-        
+
         # Scene attributes
         if current_scene:
+            # Camera direction
             cam = camera_re.search(line)
             if cam:
                 current_scene["camera"] = cam.group(1).strip('" ')
@@ -111,12 +106,9 @@ def analyze_script(script_text: str) -> dict:
             if narration:
                 current_scene["text"] = narration.group(1).strip()
                 continue
-
-
     # Append last scene
     if current_scene:
         result["scenes"].append(current_scene)
-
     return result
 
 def plan_footage(scenes: list) -> list:
@@ -124,11 +116,9 @@ def plan_footage(scenes: list) -> list:
     for idx, scene in enumerate(scenes):
         visual = scene.get("camera", "")
         requires_user_upload = False
-        
-        # Simple heuristic (you can improve this)
+        # Simple heuristic: require upload when visuals mention the user
         if any(keyword in visual.lower() for keyword in ["your", "personal", "custom"]):
             requires_user_upload = True
-        
         planned.append({
             "scene_index": idx,
             "visual": visual,
@@ -136,10 +126,9 @@ def plan_footage(scenes: list) -> list:
             "music": scene.get("music", ""),
             "transition": scene.get("transition", ""),
             "requires_user_upload": requires_user_upload,
-            "suggested_source": "stock" if not requires_user_upload else "user_upload"
+            "suggested_source": "stock" if not requires_user_upload else "user_upload",
         })
     return planned
-
 
 def build_assembly_plan(planned_footage, scene_selections):
     assembly_plan = []
@@ -153,7 +142,7 @@ def build_assembly_plan(planned_footage, scene_selections):
             "visual": scene["visual"],
             "onscreen_text": scene["onscreen_text"],
             "music": scene["music"],
-            "transition": scene["transition"]
+            "transition": scene["transition"],
         }
         assembly_plan.append(plan_item)
     return assembly_plan

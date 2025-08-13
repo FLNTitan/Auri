@@ -14,7 +14,7 @@ def detect_video_ideas(ideas: list[str]) -> bool:
     return any(any(kw in idea.lower() for kw in video_keywords) for idea in ideas)
 
 def script_contains_time_ranges(script_text: str) -> bool:
-    # Allow both hyphen and en‑dash and optional spaces 
+    # Allow both hyphen and en‑dash and optional spaces
     return bool(re.search(r'\d+s\s*[–-]\s*\d+s', script_text))
 
 def determine_workflow(script_text: str) -> dict:
@@ -28,6 +28,16 @@ def determine_workflow(script_text: str) -> dict:
     }
 
 def analyze_script(script_text: str) -> dict:
+    """Parse a script breakdown into structured data.
+
+    Each scene is defined by a time range (e.g. "0s–3s" or "4s-10s").
+    Lines beginning with specific emojis map to scene attributes:
+    🎥 camera direction, 💡 lighting notes, 🎶 music description, 🔄 transitions,
+    🖼 on-screen text. Narration/voiceover lines begin with a ✅. They may
+    contain quotes and/or a description before the quoted text. This function
+    accumulates narration text for each scene, handling multiple narration
+    lines per scene and extracting content from quotes or after a colon.
+    """
     lines = script_text.splitlines()
     result = {
         "title": "",
@@ -37,16 +47,16 @@ def analyze_script(script_text: str) -> dict:
         "duration": "",
         "scenes": [],
     }
-    current_scene = None
-    # Compile regexes
+    current_scene: dict | None = None
+    # Regex to match time ranges, allowing hyphens or en-dashes and optional spaces
     time_range_re = re.compile(r'(\d+)s\s*[–-]\s*(\d+)s')
-    # Allow optional checkmark and quotes around narration lines
-    narration_re = re.compile(r'^\s*✅?\s*["“]?(.*?)["”]?\s*$')
-    camera_re = re.compile(r'\s*(.*)', re.IGNORECASE)
-    lighting_re = re.compile(r'\s*(.*)', re.IGNORECASE)
-    music_re = re.compile(r'\s*(.*)', re.IGNORECASE)
-    transition_re = re.compile(r'\s*(.*)', re.IGNORECASE)
-    onscreen_re = re.compile(r'\s*(.*)', re.IGNORECASE)
+    # Regex to capture quoted narration anywhere on a ✅ line
+    narration_re = re.compile(r'^\s*✅.*?["“](.*?)["”]?$')
+    camera_re = re.compile(r'^🎥\s*(.*)', re.IGNORECASE)
+    lighting_re = re.compile(r'^💡\s*(.*)', re.IGNORECASE)
+    music_re = re.compile(r'^🎶\s*(.*)', re.IGNORECASE)
+    transition_re = re.compile(r'^🔄\s*(.*)', re.IGNORECASE)
+    onscreen_re = re.compile(r'^🖼\s*(.*)', re.IGNORECASE)
 
     for line in lines:
         line = line.strip()
@@ -73,38 +83,58 @@ def analyze_script(script_text: str) -> dict:
                 "onscreen_text": "",
             }
             # Extract any narration text that appears on the same line after the time range
-            # Remove leading symbols like checkmarks, dashes or colons and strip quotes
-            remaining = line[match.end():].strip(" –—:-").lstrip('✅').strip(' \"“”')
+            remaining = line[match.end():].strip()
             if remaining:
-                current_scene["text"] = remaining
+                # Remove leading symbols and quotes
+                cleaned = remaining.lstrip('✅').strip(' –—:-').strip(' "“”')
+                if cleaned:
+                    current_scene["text"] = cleaned
             continue
-
         # Scene attributes
         if current_scene:
-            # Camera direction
-            cam = camera_re.search(line)
+            # Check for camera, lighting, music, transition, onscreen markers
+            cam = camera_re.match(line)
             if cam:
                 current_scene["camera"] = cam.group(1).strip('" ')
                 continue
-            lig = lighting_re.search(line)
+            lig = lighting_re.match(line)
             if lig:
                 current_scene["lighting"] = lig.group(1).strip('" ')
                 continue
-            mus = music_re.search(line)
+            mus = music_re.match(line)
             if mus:
                 current_scene["music"] = mus.group(1).strip('" ')
                 continue
-            tra = transition_re.search(line)
+            tra = transition_re.match(line)
             if tra:
                 current_scene["transition"] = tra.group(1).strip('" ')
                 continue
-            ons = onscreen_re.search(line)
+            ons = onscreen_re.match(line)
             if ons:
                 current_scene["onscreen_text"] = ons.group(1).strip('" ')
                 continue
-            narration = narration_re.search(line)
-            if narration:
-                current_scene["text"] = narration.group(1).strip()
+            # Narration lines begin with a check mark
+            if line.lstrip().startswith('✅'):
+                # Try to extract quoted narration
+                narr_match = narration_re.match(line)
+                narration_text = narr_match.group(1).strip() if narr_match else ""
+                if narration_text:
+                    # Append or set narration text
+                    if current_scene["text"]:
+                        current_scene["text"] += " " + narration_text
+                    else:
+                        current_scene["text"] = narration_text
+                    continue
+                # Fallback: take text after a colon if no quotes present
+                without_check = line.lstrip('✅').strip()
+                if ':' in without_check:
+                    after_colon = without_check.split(':', 1)[1].strip()
+                    after_colon = after_colon.strip(' "“”')
+                    if after_colon:
+                        if current_scene["text"]:
+                            current_scene["text"] += " " + after_colon
+                        else:
+                            current_scene["text"] = after_colon
                 continue
     # Append last scene
     if current_scene:

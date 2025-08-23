@@ -13,39 +13,61 @@ def handle_step_execution(idx, step, input_val, uploaded_file, full_prompt):
     title = step["title"].lower()
 
     def handle_assemble_video_step():
-        import streamlit as st
+        import os
+        from modules.video_editor import assemble_video
+
         st.markdown("### 🎬 Assemble Video")
         ctx = st.session_state.get("auri_context", {})
         ideas_data = ctx.get("ideas_data", {})
-        # We support multiple ideas — allow user to pick which assembly plan to render:
-        idea_keys = sorted([k for k in ideas_data.keys() if "assembly_plan" in ideas_data[k]], key=lambda x: int(x.split("_")[1]))
+
+        idea_keys = [k for k, v in ideas_data.items() if isinstance(v, dict) and v.get("assembly_plan")]
         if not idea_keys:
-            st.error("No assembly plan found. Open the Script card → '📜 View script details & scene setup' to build one.")
-            return
-        choice = st.selectbox("Select idea to assemble", idea_keys, format_func=lambda k: k.replace("_", " ").title())
-        assembly_plan = ideas_data[choice].get("assembly_plan", [])
-        if not assembly_plan:
-            st.error("Assembly plan is empty for this idea.")
+            st.error("No assembly plan found. Generate a script and plan footage first.")
             return
 
-        nl_request = st.text_area("🗣️ (Optional) Describe your edits in plain English", placeholder="Trim scene 2 to 1.5s, add captions \"Sale ends Friday\" on scene 1, lower music by 6dB")
-        assets_dir = st.text_input("📂 Folder with your uploaded clips", value=".", help="Path where your uploaded files exist (as shown in the scene selections).")
-        out_path = st.text_input("📼 Output file path", value="final_video.mp4")
-        music_gain = st.number_input("🎚️ Music gain (dB, negative lowers)", value=0.0, step=1.0)
+        choice = st.selectbox("Select idea to assemble", idea_keys)
+        assembly_plan = ideas_data[choice]["assembly_plan"]
+
+        # Make sure timing/edit fields exist
+        for item in assembly_plan:
+            item.setdefault("start_seconds", 0.0)
+            item.setdefault("end_seconds", item.get("start_seconds", 0.0) + 1.0)
+            item.setdefault("speed", 1.0)
+            item.setdefault("zoom", None)
+            item.setdefault("caption", None)
+
+        nl = st.text_area(
+            "🗣️ (Optional) Describe edits",
+            placeholder='e.g., "Trim scene 2 to 1.5s, add captions \\"Sale ends Friday\\" on scene 1, lower music by 6dB"'
+        )
+
+        assets_dir = st.text_input("📂 Folder with your uploaded clips", value=".")
+        out_path = st.text_input("📼 Output path", value=os.path.join("exports", choice, "final_video.mp4"))
+        music_gain = st.number_input("🎚️ Music gain (dB; negative lowers)", value=0.0, step=1.0)
         crossfade_ms = st.number_input("🔗 Crossfade between scenes (ms)", value=0, step=50)
 
-        if st.button("▶ Assemble Now"):
-            result_type, path = assemble_video(assembly_plan, assets_dir, out_path, nl_request, music_gain, crossfade_ms)
+        if st.button("▶ Assemble Now", key=f"assemble_now_{choice}"):
+            os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+            result_type, path = assemble_video(
+                assembly_plan=assembly_plan,
+                assets_dir=assets_dir,
+                out_path=out_path,
+                nl_edit_request=nl,
+                music_gain_db=music_gain,
+                crossfade_ms=crossfade_ms
+            )
             if result_type == "file":
                 st.success(f"✅ Rendered video: {path}")
-                st.video(path)
-                st.session_state["executed_steps"][step_key] = f"Video assembled → {path}"
-                st.session_state["auri_context"]["step_outputs"][step_key] = path
+                try:
+                    st.video(path)
+                except Exception:
+                    st.info("Rendered. Preview not available in this environment.")
             else:
-                st.warning("MoviePy not available — generated FFmpeg script instead.")
-                st.code(path, language="bash")
-                st.session_state["executed_steps"][step_key] = f"FFmpeg script generated → {path}"
-                st.session_state["auri_context"]["step_outputs"][step_key] = path
+                st.warning("MoviePy unavailable here — generated FFmpeg script instead.")
+                st.code(f"bash {path}", language="bash")
+
+            st.session_state["executed_steps"][step_key] = f"{result_type} → {path}"
+            st.session_state["auri_context"].setdefault("step_outputs", {})[step_key] = path
         return
 
     def handle_idea_step():

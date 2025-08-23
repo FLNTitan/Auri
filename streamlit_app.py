@@ -666,12 +666,16 @@ if section == "🧠 Content Ideas":
 
                                 # Convenience: jump to Assemble step
                                 st.markdown("---")
-                                if st.button(
-                                    "🚀 Send this plan to the ‘Assemble Video’ step",
-                                    key=f"send_plan_{idea_key}"
-                                ):
-                                    st.session_state["auri_active_step"] = None
-                                    st.success("Plan ready. Scroll to the workflow and run ‘Assemble Video’.")
+                                missing_uploads = [it for it in assembly_plan if (not it.get("use_stock")) and (not it.get("filename"))]
+                                if not missing_uploads:  # Only show if no missing uploads
+                                    if st.button(
+                                        "🚀 Send this plan to the ‘Assemble Video’ step",
+                                        key=f"send_plan_{idea_key}"
+                                    ):
+                                        st.session_state["auri_active_step"] = None
+                                        st.success("Plan ready. Scroll to the workflow and run ‘Assemble Video’.")
+                                else:
+                                    st.warning("⚠️ Upload required footage or switch to stock before sending plan to assembly.")
 
 
                             # Close card

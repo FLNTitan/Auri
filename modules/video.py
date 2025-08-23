@@ -482,3 +482,234 @@ def ai_generation_plan(parsed_script: Dict[str, Any]) -> List[Dict[str, str]]:
             "prompt": " | ".join(prompt) or "General scene consistent with script",
         })
     return plans
+
+from typing import List, Dict, Any, Tuple, Optional
+import os
+
+# --- Natural-language edit parsing ---
+def parse_nl_edit_request(nl: str) -> List[Dict[str, Any]]:
+    """Return a list of edit commands: {'type', 'target', 'value'}."""
+    if not nl:
+        return []
+    text = nl.lower().strip()
+    cmds = []
+    import re
+
+    # trim scene N to Xs
+    for m in re.finditer(r'trim\s+scene\s+(\d+)\s+to\s+([0-9.]+)s', text):
+        cmds.append({"type": "trim", "target": f"scene:{int(m.group(1))}", "value": float(m.group(2))})
+
+    # speed up scene N by fx
+    for m in re.finditer(r'speed(\s+up)?\s+scene\s+(\d+)\s+by\s+([0-9.]+)x', text):
+        cmds.append({"type": "speed", "target": f"scene:{int(m.group(2))}", "value": float(m.group(3))})
+
+    # zoom-in on scene N
+    for m in re.finditer(r'(apply\s+)?zoom-?in\s+on\s+scene\s+(\d+)', text):
+        cmds.append({"type": "zoom", "target": f"scene:{int(m.group(2))}", "value": "in"})
+
+    # captions "...“ on scene N
+    for m in re.finditer(r'captions?\s+"([^"]+)"\s+on\s+scene\s+(\d+)', text):
+        cmds.append({"type": "caption", "target": f"scene:{int(m.group(2))}", "value": m.group(1)})
+
+    # lower music by X dB (global)
+    if "lower music" in text:
+        import re
+        db = -6.0
+        m = re.search(r'by\s+([0-9.]+)\s*d?b', text)
+        if m:
+            db = -abs(float(m.group(1)))
+        cmds.append({"type": "music_gain", "target": "global", "value": db})
+
+    return cmds
+
+def apply_edit_commands(assembly_plan: List[Dict[str, Any]], commands: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Apply NL edit commands onto a copy of the assembly plan."""
+    plan = [dict(it) for it in assembly_plan]
+    for cmd in commands:
+        if cmd["target"].startswith("scene:"):
+            idx1 = int(cmd["target"].split(":")[1])  # 1-based
+            for it in plan:
+                if it["scene_index"] == idx1 - 1:
+                    if cmd["type"] == "trim":
+                        dur = max(0.2, float(cmd["value"]))
+                        it["end_seconds"] = float(it.get("start_seconds", 0.0)) + dur
+                    elif cmd["type"] == "speed":
+                        it["speed"] = max(0.1, float(cmd["value"]))
+                    elif cmd["type"] == "zoom":
+                        it["zoom"] = cmd["value"]
+                    elif cmd["type"] == "caption":
+                        it["caption"] = str(cmd["value"])
+        # 'music_gain' is handled at render stage
+    return plan
+
+# --- Rendering helpers ---
+def render_with_moviepy(assembly_plan: List[Dict[str, Any]],
+                        assets_dir: str,
+                        out_path: str,
+                        music_gain_db: float = 0.0,
+                        crossfade_ms: int = 0,
+                        scene_voiceovers: Optional[List[str]] = None,
+                        global_voiceover: Optional[str] = None) -> bool:
+    """Try to render with moviepy; return True if file written."""
+    try:
+        from moviepy.editor import (VideoFileClip, AudioFileClip, CompositeAudioClip,
+                                    concatenate_videoclips, vfx, TextClip, CompositeVideoClip)
+    except Exception:
+        return False
+
+    clips = []
+    for it in assembly_plan:
+        fn = it.get("filename")
+        if not fn and it.get("use_stock"):
+            continue
+        if not fn:
+            continue
+        path = os.path.join(assets_dir, fn)
+        start = float(it.get("start_seconds", 0.0))
+        end = float(it.get("end_seconds", start + 1.0))
+        try:
+            base = VideoFileClip(path).subclip(start, end)
+        except Exception:
+            continue
+
+        spd = float(it.get("speed", 1.0) or 1.0)
+        if spd != 1.0:
+            base = base.fx(vfx.speedx, factor=spd)
+        if it.get("zoom") == "in":
+            w, h = base.size
+            base = base.resize(1.1).crop(x_center=w/2, y_center=h/2, width=w, height=h)
+        if it.get("caption"):
+            try:
+                tc = TextClip(it["caption"], fontsize=42, color="white").set_duration(base.duration)
+                overlay = tc.on_color(size=(base.w, tc.h+20), color=(0,0,0), col_opacity=0.5)
+                base = CompositeVideoClip([base, overlay.set_position(("center", "bottom"))])
+            except Exception:
+                pass
+
+        # per‑scene voiceover
+        if scene_voiceovers:
+            idx = it["scene_index"]
+            if idx < len(scene_voiceovers) and scene_voiceovers[idx]:
+                try:
+                    vo = AudioFileClip(scene_voiceovers[idx]).set_duration(base.duration)
+                    if base.audio:
+                        base = base.set_audio(CompositeAudioClip([base.audio, vo]))
+                    else:
+                        base = base.set_audio(vo)
+                except Exception:
+                    pass
+
+        clips.append(base)
+
+    if not clips:
+        return False
+
+    final = concatenate_videoclips(clips, method="compose")
+
+    # global voiceover (optional)
+    if global_voiceover:
+        try:
+            vo = AudioFileClip(global_voiceover).set_duration(final.duration)
+            if final.audio:
+                final = final.set_audio(CompositeAudioClip([final.audio, vo]))
+            else:
+                final = final.set_audio(vo)
+        except Exception:
+            pass
+
+    # music gain applied globally
+    if music_gain_db:
+        factor = 10 ** (float(music_gain_db) / 20.0)
+        final = final.volumex(factor)
+
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    final.write_videofile(out_path, codec="libx264", audio_codec="aac")
+    return True
+
+
+def compile_ffmpeg_script(assembly_plan: List[Dict[str, Any]],
+                          assets_dir: str,
+                          out_path: str,
+                          music_gain_db: float = 0.0,
+                          crossfade_ms: int = 0,
+                          scene_voiceovers: Optional[List[str]] = None,
+                          global_voiceover: Optional[str] = None) -> Tuple[str, str]:
+    """Emit portable .sh and .bat that cut/concat and (optionally) mix a single global VO."""
+    sh_path = out_path + ".sh" if not out_path.endswith(".sh") else out_path
+    bat_path = out_path + ".bat" if not out_path.endswith(".bat") else out_path
+
+    inputs = []
+    filters = []
+    vlabels = []
+    alabels = []
+
+    n = 0
+    for it in assembly_plan:
+        fn = it.get("filename")
+        if not fn and it.get("use_stock"):
+            continue
+        if not fn:
+            continue
+        clip = os.path.join(assets_dir, fn)
+        inputs.append(f'-i "{clip}"')
+        ss = float(it.get("start_seconds", 0.0))
+        ee = float(it.get("end_seconds", ss + 1.0))
+        spd = float(it.get("speed", 1.0) or 1.0)
+
+        v = f"[{n}:v]trim=start={ss}:end={ee},setpts=PTS-STARTPTS"
+        if spd != 1.0:
+            v += f",setpts=PTS/{spd:.4f}"
+        if it.get("zoom") == "in":
+            v += ",scale=iw*1.1:ih*1.1,crop=iw/1.1:ih/1.1"
+        if it.get("caption"):
+            safe = it["caption"].replace("'", r"\'")
+            v += f",drawtext=text='{safe}':x=(w-text_w)/2:y=h-100:fontsize=42:fontcolor=white:box=1:boxcolor=black@0.5"
+        vlabel = f"[v{n}]"
+        filters.append(f"{v}{vlabel}")
+
+        a = f"[{n}:a]atrim=start={ss}:end={ee},asetpts=PTS-STARTPTS"
+        if spd != 1.0:
+            remain = spd
+            fxs = []
+            while remain > 2.0 + 1e-6:
+                fxs.append(2.0)
+                remain /= 2.0
+            fxs.append(remain)
+            a += "," + ",".join([f"atempo={f:.4f}" for f in fxs])
+        alabel = f"[a{n}]"
+        filters.append(f"{a}{alabel}")
+
+        vlabels.append(vlabel)
+        alabels.append(alabel)
+        n += 1
+
+    concat = "".join(vlabels) + "".join(alabels) + f"concat=n={n}:v=1:a=1[v][a]"
+    filters.append(concat)
+
+    # music gain
+    out_a = "[a]"
+    if music_gain_db:
+        vol = 10 ** (float(music_gain_db) / 20.0)
+        filters.append(f"[a]volume={vol:.4f}[aout]")
+        out_a = "[aout]"
+
+    # optional single global VO overlay
+    vo_input = ""
+    vo_map = out_a
+    if global_voiceover:
+        vo_input = f' -i "{global_voiceover}"'
+        filters.append(f"[{n}:a]asetpts=PTS-STARTPTS[vo]")
+        filters.append(f"{out_a}[vo]amix=inputs=2:duration=first:dropout_transition=0[aout2]")
+        vo_map = "[aout2]"
+
+    full_inputs = " ".join(inputs) + vo_input
+    filtergraph = ";".join(filters)
+    cmd = f'ffmpeg -y {full_inputs} -filter_complex "{filtergraph}" -map "[v]" -map "{vo_map}" "{out_path}"'
+
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with open(sh_path, "w", encoding="utf-8") as f:
+        f.write("#!/usr/bin/env bash\nset -e\n" + cmd + "\n")
+    with open(bat_path, "w", encoding="utf-8") as f:
+        f.write("@echo off\r\n" + cmd + "\r\n")
+
+    return sh_path, bat_path

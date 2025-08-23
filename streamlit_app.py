@@ -3,6 +3,7 @@ from ideation.generator import generate_ideas, is_idea_or_repurpose_step
 from modules.feedback import show_feedback_controls
 from modules.script import generate_script_step_instruction
 from modules.video import detect_video_ideas, analyze_script, determine_workflow, build_assembly_plan
+from modules.video import compute_minimal_footage, shooting_instructions
 from modules.workflow import handle_step_execution
 from openai import OpenAI
 import re
@@ -642,6 +643,33 @@ if section == "🧠 Content Ideas":
                                         st.error("Missing footage for this scene.")
 
                                 st.info("✅ Plan saved to session state. You can generate voiceover/assembly in the next steps.")
+
+                                # Shooting guide
+                                st.markdown("### 🎥 Shooting Guide")
+                                guide = shooting_instructions(parsed)
+                                for g in guide:
+                                    st.markdown(f"- {g}")
+
+                                # Minimal footage checklist (deduped)
+                                st.markdown("### ✅ Minimal Footage Checklist")
+                                checklist = compute_minimal_footage(idea_store.get("planned_footage", []))
+                                if not checklist:
+                                    st.info("No custom shots required — stock footage should be sufficient.")
+                                else:
+                                    for shot in checklist:
+                                        st.markdown(f"- **{shot.shot_type}**, ~{shot.duration:.1f}s — {shot.description}")
+
+                                # Missing uploads quick check
+                                missing = [it for it in assembly_plan if (not it.get("use_stock")) and (not it.get("filename"))]
+                                if missing:
+                                    st.error(f"Missing footage for {len(missing)} scene(s). Upload the clips above or toggle 'Use Stock Footage'.")
+
+                                # Convenience: jump to Assemble step
+                                st.markdown("---")
+                                if st.button("🚀 Send this plan to the ‘Assemble Video’ step"):
+                                    st.session_state["auri_active_step"] = None
+                                    # Nothing to do: plan is already in session under idea_store["assembly_plan"]
+                                    st.success("Plan ready. Scroll to the workflow and run ‘Assemble Video’.")
 
                             # Close card
                             st.markdown("</div>", unsafe_allow_html=True)

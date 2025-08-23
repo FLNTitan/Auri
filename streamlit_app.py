@@ -666,10 +666,13 @@ if section == "🧠 Content Ideas":
 
                                 # Convenience: jump to Assemble step
                                 st.markdown("---")
-                                if st.button("🚀 Send this plan to the ‘Assemble Video’ step"):
+                                if st.button(
+                                    "🚀 Send this plan to the ‘Assemble Video’ step",
+                                    key=f"send_plan_{idea_key}"
+                                ):
                                     st.session_state["auri_active_step"] = None
-                                    # Nothing to do: plan is already in session under idea_store["assembly_plan"]
                                     st.success("Plan ready. Scroll to the workflow and run ‘Assemble Video’.")
+
 
                             # Close card
                             st.markdown("</div>", unsafe_allow_html=True)

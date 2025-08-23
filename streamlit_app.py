@@ -664,18 +664,33 @@ if section == "🧠 Content Ideas":
                                 if missing:
                                     st.error(f"Missing footage for {len(missing)} scene(s). Upload the clips above or toggle 'Use Stock Footage'.")
 
-                                # Convenience: jump to Assemble step
+                                # Convenience: jump to Video Studio (only if no required uploads are missing)
                                 st.markdown("---")
                                 missing_uploads = [it for it in assembly_plan if (not it.get("use_stock")) and (not it.get("filename"))]
-                                if not missing_uploads:  # Only show if no missing uploads
-                                    if st.button(
-                                        "🚀 Send this plan to the ‘Assemble Video’ step",
-                                        key=f"send_plan_{idea_key}"
-                                    ):
-                                        st.session_state["auri_active_step"] = None
-                                        st.success("Plan ready. Scroll to the workflow and run ‘Assemble Video’.")
+                                if not missing_uploads:
+                                    if st.button("🎬 Open in Video Studio", key=f"open_video_studio_{idea_key}"):
+                                        import os
+                                        # Stash studio context for a smooth handoff
+                                        studio = st.session_state.setdefault("video_studio", {})
+                                        studio["idea_key"] = idea_key
+                                        studio["assembly_plan"] = assembly_plan
+                                        studio["assets_dir"] = "."
+                                        studio["out_path"] = os.path.join("exports", idea_key, "final_video.mp4")
+                                        studio.setdefault("edit_history", [])   # cumulative NL instructions
+                                        studio.setdefault("last_video_path", None)
+
+                                        # If you already generate voiceovers and save them, surface here (optional)
+                                        ctx = st.session_state.get("auri_context", {})
+                                        studio["scene_voiceovers"] = ctx.get("voiceover_paths")    # list[str] or None
+                                        studio["global_voiceover"] = ctx.get("voiceover_full")     # str or None
+
+                                        # Tell the app to show the Video Studio and rerun
+                                        st.session_state["active_main_tab"] = "Editing Studio"   # <— adjust to your nav variable if different
+                                        st.session_state["active_studio_tab"] = "Video"          # <— we’ll read this below
+                                        st.rerun()
                                 else:
-                                    st.warning("⚠️ Upload required footage or switch to stock before sending plan to assembly.")
+                                    st.warning("⚠️ Upload required footage or switch to stock before opening the Video Studio.")
+
 
 
                             # Close card
@@ -740,6 +755,96 @@ if section == "🧠 Content Ideas":
 
 elif section == "🎨 Editing Studio":
     st.markdown("## 🎨 Editing Studio")
+    # ---- VIDEO STUDIO (place this inside your "Editing Studio" tab code) ----
+    import os
+    from modules.video_editor import assemble_video
+
+    # If you have a tabset inside Editing Studio, select the "Video" tab by default:
+    # Example:
+    # video_tab, thumb_tab = st.tabs(["🎬 Video", "🖼 Thumbnails"])
+    # with video_tab:
+    if st.session_state.get("active_studio_tab") == "Video":
+        st.subheader("🎬 Video Studio")
+
+    studio = st.session_state.get("video_studio")
+    if not studio:
+        st.info("No video plan loaded yet. Go to the Script card → Build Assembly Plan → Open in Video Studio.")
+    else:
+        idea_key     = studio["idea_key"]
+        assembly_plan = studio["assembly_plan"]
+        assets_dir   = studio.get("assets_dir", ".")
+        out_path     = studio.get("out_path", os.path.join("exports", idea_key, "final_video.mp4"))
+        edit_history = studio.get("edit_history", [])
+        scene_vos    = studio.get("scene_voiceovers")   # optional
+        global_vo    = studio.get("global_voiceover")   # optional
+
+        # TOP: Always show the most recent video
+        last_path = studio.get("last_video_path")
+        if last_path and os.path.exists(last_path):
+            st.video(last_path)
+        else:
+            st.info("No render yet. Add an edit and click Apply, or click Render to produce the first cut.")
+
+        # NL editing box
+        nl = st.text_area(
+            "✍️ Give editing instructions (they stack each time you click Apply)",
+            placeholder='e.g., "Trim scene 2 to 1.5s, add captions \\"Sale ends Friday\\" on scene 1, lower music by 6dB"',
+            key=f"nl_edits_{idea_key}"
+        )
+
+        colA, colB, colC = st.columns(3)
+        with colA:
+            apply_clicked = st.button("✅ Apply edits", key=f"apply_edits_{idea_key}")
+        with colB:
+            render_clicked = st.button("▶ Render (no new edits)", key=f"render_now_{idea_key}")
+        with colC:
+            reset_clicked = st.button("♻️ Reset edits", key=f"reset_edits_{idea_key}")
+
+        # Helper to run assembly (MoviePy -> fallback to FFmpeg script)
+        def _assemble_with(nl_text: str):
+            # Ensure default timing/edit fields exist
+            for item in assembly_plan:
+                item.setdefault("start_seconds", 0.0)
+                item.setdefault("end_seconds", item.get("start_seconds", 0.0) + 1.0)
+                item.setdefault("speed", 1.0)
+                item.setdefault("zoom", None)
+                item.setdefault("caption", None)
+
+            os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+            result_type, path = assemble_video(
+                assembly_plan=assembly_plan,
+                assets_dir=assets_dir,
+                out_path=out_path,
+                nl_edit_request=nl_text,
+                music_gain_db=0.0,
+                crossfade_ms=0
+                # If you extend assemble_video to accept VO (recommended), pass:
+                # scene_voiceovers=scene_vos,
+                # global_voiceover=global_vo
+            )
+            if result_type == "file":
+                studio["last_video_path"] = path
+                st.success("Rendered ✅")
+                st.rerun()  # refresh the video container
+            else:
+                # FFmpeg script path returned — show it and keep current preview
+                st.warning("MoviePy not available — generated an FFmpeg script instead.")
+                st.code(f"bash {path}", language="bash")
+
+        if apply_clicked:
+            if nl.strip():
+                edit_history.append(nl.strip())
+                studio["edit_history"] = edit_history
+                _assemble_with("\n".join(edit_history))
+            else:
+                st.info("No new instructions to apply.")
+
+        if render_clicked:
+            _assemble_with("\n".join(edit_history))
+
+        if reset_clicked:
+            studio["edit_history"] = []
+            st.success("Edits reset. Render again to go back to the base plan.")
 
     st.markdown("### 🖼️ Thumbnail Generator")
 

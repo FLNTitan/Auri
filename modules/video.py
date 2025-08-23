@@ -364,9 +364,8 @@ def compile_ffmpeg_script(assembly_plan: List[Dict[str, Any]],
             zoom = "scale=iw*1.1:ih*1.1,crop=iw/1.1:ih/1.1"
         # caption
         cap = None
-        if it.get("caption"):
-            # Requires libfreetype; you can point to a TTF if needed
-            cap = f"drawtext=text='{it['caption'].replace(\"'\",\"\\'\")}':x=(w-text_w)/2:y=h-100:fontsize=42:fontcolor=white:box=1:boxcolor=black@0.5")
+        caption_text = it['caption'].replace("'", r"\'")
+        cap = f"drawtext=text='{caption_text}':x=(w-text_w)/2:y=h-100:fontsize=42:fontcolor=white:box=1:boxcolor=black@0.5"
 
         v_chain = ",".join([p for p in [trim, spdfilter, zoom, cap] if p])
         if not v_chain:
